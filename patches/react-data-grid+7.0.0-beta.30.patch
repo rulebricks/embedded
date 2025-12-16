@@ -1,0 +1,246 @@
+diff --git a/node_modules/react-data-grid/lib/bundle.cjs b/node_modules/react-data-grid/lib/bundle.cjs
+index 5874dc9..427eac1 100644
+--- a/node_modules/react-data-grid/lib/bundle.cjs
++++ b/node_modules/react-data-grid/lib/bundle.cjs
+@@ -619,41 +619,7 @@ function useCalculatedColumns({
+     };
+   }, [measuredColumnWidths, resizedColumnWidths, columns, lastFrozenColumnIndex]);
+   const [colOverscanStartIdx, colOverscanEndIdx] = react.useMemo(() => {
+-    if (!enableVirtualization) {
+-      return [0, columns.length - 1];
+-    }
+-    const viewportLeft = scrollLeft + totalFrozenColumnWidth;
+-    const viewportRight = scrollLeft + viewportWidth;
+-    const lastColIdx = columns.length - 1;
+-    const firstUnfrozenColumnIdx = min(lastFrozenColumnIndex + 1, lastColIdx);
+-    if (viewportLeft >= viewportRight) {
+-      return [firstUnfrozenColumnIdx, firstUnfrozenColumnIdx];
+-    }
+-    let colVisibleStartIdx = firstUnfrozenColumnIdx;
+-    while (colVisibleStartIdx < lastColIdx) {
+-      const {
+-        left,
+-        width
+-      } = columnMetrics.get(columns[colVisibleStartIdx]);
+-      if (left + width > viewportLeft) {
+-        break;
+-      }
+-      colVisibleStartIdx++;
+-    }
+-    let colVisibleEndIdx = colVisibleStartIdx;
+-    while (colVisibleEndIdx < lastColIdx) {
+-      const {
+-        left,
+-        width
+-      } = columnMetrics.get(columns[colVisibleEndIdx]);
+-      if (left + width >= viewportRight) {
+-        break;
+-      }
+-      colVisibleEndIdx++;
+-    }
+-    const colOverscanStartIdx = max(firstUnfrozenColumnIdx, colVisibleStartIdx - 1);
+-    const colOverscanEndIdx = min(lastColIdx, colVisibleEndIdx + 1);
+-    return [colOverscanStartIdx, colOverscanEndIdx];
++    return [0, columns.length - 1];
+   }, [columnMetrics, columns, lastFrozenColumnIndex, scrollLeft, totalFrozenColumnWidth, viewportWidth, enableVirtualization]);
+   return {
+     columns,
+@@ -1038,9 +1004,9 @@ function useViewportRows({
+   let rowOverscanStartIdx = 0;
+   let rowOverscanEndIdx = rows.length - 1;
+   if (enableVirtualization) {
+-    const overscanThreshold = 4;
+-    const rowVisibleStartIdx = findRowIdx(scrollTop);
+-    const rowVisibleEndIdx = findRowIdx(scrollTop + clientHeight);
++    const overscanThreshold = 100;
++    const rowVisibleStartIdx = findRowIdx(scrollTop) - Math.floor(0.033453 * findRowIdx(scrollTop))
++    const rowVisibleEndIdx = findRowIdx(scrollTop + clientHeight) - Math.floor(0.033453 * findRowIdx(scrollTop));
+     rowOverscanStartIdx = max(0, rowVisibleStartIdx - overscanThreshold);
+     rowOverscanEndIdx = min(rows.length - 1, rowVisibleEndIdx + overscanThreshold);
+   }
+@@ -1111,25 +1077,10 @@ function DragHandle({
+     const updatedRows = [...rows];
+     const indexes = [];
+     for (let i = startRowIdx; i < endRowIdx; i++) {
+-      if (isCellEditable({
+-        rowIdx: i,
+-        idx
+-      })) {
+-        const updatedRow = onFill({
+-          columnKey: column.key,
+-          sourceRow,
+-          targetRow: rows[i]
+-        });
+-        if (updatedRow !== rows[i]) {
+-          updatedRows[i] = updatedRow;
+-          indexes.push(i);
+-        }
+-      }
+-    }
+-    if (indexes.length > 0) {
+-      onRowsChange?.(updatedRows, {
+-        indexes,
+-        column
++      const updatedRow = onFill({
++        columnKey: column.key,
++        sourceRow,
++        targetRow: rows[i]
+       });
+     }
+   }
+@@ -2291,17 +2242,19 @@ function DataGrid(props, ref) {
+     } = selectedPosition;
+     const sourceRow = rawRows[getRawRowIdx(rowIdx)];
+     const sourceColumnKey = columns[idx].key;
+-    setCopiedCell({
+-      row: sourceRow,
+-      columnKey: sourceColumnKey
+-    });
++    if (document?.activeElement?.getAttribute('role') === 'gridcell') {
++      setCopiedCell({
++        row: sourceRow,
++        columnKey: sourceColumnKey
++      });
++    }
+     onCopy?.({
+       sourceRow,
+       sourceColumnKey
+     });
+   }
+   function handlePaste() {
+-    if (!onPaste || !onRowsChange || copiedCell === null || !isCellEditable(selectedPosition)) {
++    if (copiedCell === null) {
+       return;
+     }
+     const {
+@@ -2316,7 +2269,6 @@ function DataGrid(props, ref) {
+       targetRow,
+       targetColumnKey: targetColumn.key
+     });
+-    updateRow(targetColumn, rowIdx, updatedTargetRow);
+   }
+   function handleCellInput(event) {
+     if (!selectedCellIsWithinViewportBounds) return;
+diff --git a/node_modules/react-data-grid/lib/bundle.js b/node_modules/react-data-grid/lib/bundle.js
+index fdacfac..c2d22f6 100644
+--- a/node_modules/react-data-grid/lib/bundle.js
++++ b/node_modules/react-data-grid/lib/bundle.js
+@@ -615,41 +615,7 @@ function useCalculatedColumns({
+     };
+   }, [measuredColumnWidths, resizedColumnWidths, columns, lastFrozenColumnIndex]);
+   const [colOverscanStartIdx, colOverscanEndIdx] = useMemo(() => {
+-    if (!enableVirtualization) {
+-      return [0, columns.length - 1];
+-    }
+-    const viewportLeft = scrollLeft + totalFrozenColumnWidth;
+-    const viewportRight = scrollLeft + viewportWidth;
+-    const lastColIdx = columns.length - 1;
+-    const firstUnfrozenColumnIdx = min(lastFrozenColumnIndex + 1, lastColIdx);
+-    if (viewportLeft >= viewportRight) {
+-      return [firstUnfrozenColumnIdx, firstUnfrozenColumnIdx];
+-    }
+-    let colVisibleStartIdx = firstUnfrozenColumnIdx;
+-    while (colVisibleStartIdx < lastColIdx) {
+-      const {
+-        left,
+-        width
+-      } = columnMetrics.get(columns[colVisibleStartIdx]);
+-      if (left + width > viewportLeft) {
+-        break;
+-      }
+-      colVisibleStartIdx++;
+-    }
+-    let colVisibleEndIdx = colVisibleStartIdx;
+-    while (colVisibleEndIdx < lastColIdx) {
+-      const {
+-        left,
+-        width
+-      } = columnMetrics.get(columns[colVisibleEndIdx]);
+-      if (left + width >= viewportRight) {
+-        break;
+-      }
+-      colVisibleEndIdx++;
+-    }
+-    const colOverscanStartIdx = max(firstUnfrozenColumnIdx, colVisibleStartIdx - 1);
+-    const colOverscanEndIdx = min(lastColIdx, colVisibleEndIdx + 1);
+-    return [colOverscanStartIdx, colOverscanEndIdx];
++    return [0, columns.length - 1];
+   }, [columnMetrics, columns, lastFrozenColumnIndex, scrollLeft, totalFrozenColumnWidth, viewportWidth, enableVirtualization]);
+   return {
+     columns,
+@@ -1034,9 +1000,9 @@ function useViewportRows({
+   let rowOverscanStartIdx = 0;
+   let rowOverscanEndIdx = rows.length - 1;
+   if (enableVirtualization) {
+-    const overscanThreshold = 4;
+-    const rowVisibleStartIdx = findRowIdx(scrollTop);
+-    const rowVisibleEndIdx = findRowIdx(scrollTop + clientHeight);
++    const overscanThreshold = 100;
++    const rowVisibleStartIdx = findRowIdx(scrollTop) - Math.floor(0.033453 * findRowIdx(scrollTop))
++    const rowVisibleEndIdx = findRowIdx(scrollTop + clientHeight) - Math.floor(0.033453 * findRowIdx(scrollTop));
+     rowOverscanStartIdx = max(0, rowVisibleStartIdx - overscanThreshold);
+     rowOverscanEndIdx = min(rows.length - 1, rowVisibleEndIdx + overscanThreshold);
+   }
+@@ -1107,25 +1073,10 @@ function DragHandle({
+     const updatedRows = [...rows];
+     const indexes = [];
+     for (let i = startRowIdx; i < endRowIdx; i++) {
+-      if (isCellEditable({
+-        rowIdx: i,
+-        idx
+-      })) {
+-        const updatedRow = onFill({
+-          columnKey: column.key,
+-          sourceRow,
+-          targetRow: rows[i]
+-        });
+-        if (updatedRow !== rows[i]) {
+-          updatedRows[i] = updatedRow;
+-          indexes.push(i);
+-        }
+-      }
+-    }
+-    if (indexes.length > 0) {
+-      onRowsChange?.(updatedRows, {
+-        indexes,
+-        column
++      onFill({
++        columnKey: column.key,
++        sourceRow,
++        targetRow: rows[i]
+       });
+     }
+   }
+@@ -2287,17 +2238,19 @@ function DataGrid(props, ref) {
+     } = selectedPosition;
+     const sourceRow = rawRows[getRawRowIdx(rowIdx)];
+     const sourceColumnKey = columns[idx].key;
+-    setCopiedCell({
+-      row: sourceRow,
+-      columnKey: sourceColumnKey
+-    });
++    if (document?.activeElement?.getAttribute('role') === 'gridcell') {
++      setCopiedCell({
++        row: sourceRow,
++        columnKey: sourceColumnKey
++      });
++    }
+     onCopy?.({
+       sourceRow,
+       sourceColumnKey
+     });
+   }
+   function handlePaste() {
+-    if (!onPaste || !onRowsChange || copiedCell === null || !isCellEditable(selectedPosition)) {
++    if (copiedCell === null) {
+       return;
+     }
+     const {
+@@ -2312,7 +2265,6 @@ function DataGrid(props, ref) {
+       targetRow,
+       targetColumnKey: targetColumn.key
+     });
+-    updateRow(targetColumn, rowIdx, updatedTargetRow);
+   }
+   function handleCellInput(event) {
+     if (!selectedCellIsWithinViewportBounds) return;
