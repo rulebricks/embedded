@@ -1,0 +1,553 @@
+/* 
+ * Rulebricks Embed Styles
+ * All styles are scoped to .rulebricks-embed to avoid conflicts with host apps
+ */
+
+/* Font imports */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Inter:wght@400;600&family=Source+Code+Pro:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap");
+
+/* Third-party component styles */
+@import "react-data-grid/lib/styles.css";
+@import "react-datetime/css/react-datetime.css";
+@import "highlight.js/styles/github.css";
+
+/* Tailwind - no base (preflight disabled in config), just components and utilities */
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   All custom styles scoped to .rulebricks-embed
+   ============================================ */
+
+.rulebricks-embed {
+  /* CSS Variables for theming */
+  --border-radius: 0.125rem;
+  --primary-color: #000000;
+  --accent-color: #f59e0b;
+
+  /* React Data Grid Customizations */
+  .rdg-cell[role="columnheader"] {
+    border-bottom: 1px solid rgb(211, 211, 211);
+  }
+
+  .rdg-cell[aria-selected="true"] {
+    outline-color: theme("colors.editorSelected");
+  }
+
+  .dragging-over > .rdg-cell {
+    outline-color: theme("colors.editorSelected");
+    border-top: 2px dashed theme("colors.editorSelected");
+  }
+
+  .rdg-cell {
+    overflow: visible;
+    padding: 0;
+  }
+
+  input {
+    --tw-ring-shadow: 0 0 #000 !important;
+  }
+
+  .json5-editor-wrapper {
+    height: auto !important;
+  }
+
+  /* Overriding react-data-grid's manual column sizing */
+  .rdg {
+    grid-template-columns: 165px !important;
+    grid-auto-columns: minmax(max-content, auto) !important;
+    padding-bottom: 300px;
+  }
+
+  .rdg-demo {
+    grid-template-columns: minmax(max-content, auto) !important;
+  }
+
+  .no-drag {
+    cursor: default;
+  }
+
+  .center-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+  }
+
+  /* Loader animation */
+  .loader-square-27 {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 70px;
+  }
+
+  .loader-square-27 div {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background: var(--primary-color);
+    animation: anm-SL-27-move 2s linear infinite;
+  }
+
+  .loader-square-27 div:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .loader-square-27 div:nth-child(2) {
+    animation-delay: -0.667s;
+  }
+
+  .loader-square-27 div:nth-child(3) {
+    animation-delay: -1.33s;
+  }
+
+  @keyframes anm-SL-27-move {
+    0% {
+      top: 0;
+      left: 0;
+    }
+    12.5% {
+      top: 0;
+      left: 50%;
+    }
+    25% {
+      top: 0;
+      left: 50%;
+    }
+    37.5% {
+      top: 50%;
+      left: 50%;
+    }
+    50% {
+      top: 50%;
+      left: 50%;
+    }
+    62.5% {
+      top: 50%;
+      left: 0;
+    }
+    75% {
+      top: 50%;
+      left: 0;
+    }
+    87.5% {
+      top: 0;
+      left: 0;
+    }
+    100% {
+      top: 0;
+      left: 0;
+    }
+  }
+
+  /* Date input styles */
+  .date-input {
+    font-family: var(--font-sans), "Archivo", sans-serif;
+  }
+
+  .date-input > input {
+    height: 2.35rem;
+    width: 100%;
+    font-size: 0.875rem;
+    border: 1px solid lightgray;
+    border-radius: var(--border-radius);
+  }
+
+  .date-input > .rdtPicker {
+    position: relative !important;
+    border-radius: var(--border-radius) !important;
+    box-shadow: none !important;
+    line-height: 2.6;
+  }
+
+  .rdtPicker {
+    font-family: var(--font-sans), "Archivo", sans-serif;
+    width: 100%;
+    border: 1px solid lightgray;
+    border-radius: var(--border-radius);
+  }
+
+  .rdtDay,
+  .rdtMonth {
+    border-radius: 4px;
+  }
+
+  .rdtCounter .rdtCount {
+    line-height: initial !important;
+  }
+
+  /* CodeMirror styles */
+  .cm-scroller {
+    font-family: var(--font-jetbrains-mono) !important;
+  }
+
+  .cm-focused {
+    outline: none !important;
+  }
+
+  /* React Tags styles */
+  .react-tags {
+    position: relative;
+    padding: 6px 0 0px 6px;
+    border: 2px solid #d1d1d1;
+    border-radius: 4px;
+    font-size: 1em;
+    line-height: 1.2;
+    cursor: text;
+    background: white;
+  }
+
+  .react-tags.is-focused {
+    border-color: #b1b1b1;
+  }
+
+  .react-tags__selected {
+    display: inline;
+  }
+
+  .react-tags__selected-tag {
+    display: inline-block;
+    box-sizing: border-box;
+    margin: 0 6px 6px 0;
+    padding: 6px 8px;
+    border: 1px solid #d1d1d1;
+    border-radius: 2px;
+    background: #f1f1f1;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .react-tags__selected-tag:after {
+    content: "\2715";
+    color: #aaa;
+    margin-left: 8px;
+  }
+
+  .react-tags__selected-tag:hover,
+  .react-tags__selected-tag:focus {
+    border-color: #b1b1b1;
+  }
+
+  .react-tags__search {
+    display: inline-block;
+    padding: 7px 2px;
+    padding-left: 9px;
+    margin-bottom: 6px;
+    max-width: 100%;
+  }
+
+  @media screen and (min-width: 30em) {
+    .react-tags__search {
+      position: relative;
+    }
+  }
+
+  .react-tags__search-input {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    font-size: inherit;
+    line-height: inherit;
+    background: none;
+  }
+
+  .react-tags__search-input::-ms-clear {
+    display: none;
+  }
+
+  .react-tags__suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+  }
+
+  @media screen and (min-width: 30em) {
+    .react-tags__suggestions {
+      width: 240px;
+    }
+  }
+
+  .react-tags__suggestions ul {
+    margin: 4px -1px;
+    padding: 0;
+    list-style: none;
+    background: white;
+    border: 1px solid #d1d1d1;
+    border-radius: 2px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .react-tags__suggestions li {
+    border-bottom: 1px solid #ddd;
+    padding: 6px 8px;
+  }
+
+  .react-tags__suggestions li mark {
+    text-decoration: underline;
+    background: none;
+    font-weight: 600;
+  }
+
+  .react-tags__suggestions li:hover {
+    cursor: pointer;
+    background: #eee;
+  }
+
+  .react-tags__suggestions li.is-active {
+    background: #b7cfe0;
+  }
+
+  .react-tags__suggestions li.is-disabled {
+    opacity: 0.5;
+    cursor: auto;
+  }
+
+  /* Tooltip styles */
+  .large-tooltip-container {
+    --tooltipBackground: #fff;
+    --tooltipBorder: #c0c0c0;
+    --tooltipColor: #000;
+    background-color: var(--tooltipBackground);
+    border-radius: 3px;
+    border: 1px solid var(--tooltipBorder);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+    color: var(--tooltipColor);
+    display: absolute;
+    z-index: 1000;
+    transition: opacity 0.3s;
+  }
+
+  /* Shimmer animation */
+  .shimmer {
+    color: grey;
+    -webkit-mask: linear-gradient(-60deg, #000 30%, #0005, #000 70%) right /
+      300% 100%;
+    mask: linear-gradient(-60deg, #000 30%, #0005, #000 70%) right / 300% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 0.5s;
+  }
+
+  @keyframes shimmer {
+    100% {
+      -webkit-mask-position: left;
+    }
+  }
+
+  /* Override border radius classes */
+  .rounded-sm {
+    border-radius: var(--border-radius) !important;
+  }
+
+  .rounded-md {
+    border-radius: calc(var(--border-radius) * 2) !important;
+  }
+
+  .rounded-lg {
+    border-radius: calc(var(--border-radius) * 3) !important;
+  }
+
+  /* Override color classes for theming */
+  .bg-black {
+    background-color: var(--primary-color) !important;
+  }
+
+  .text-black {
+    color: var(--primary-color) !important;
+  }
+
+  .bg-amber-600 {
+    background-color: var(--accent-color) !important;
+  }
+
+  .hover\:bg-amber-700:hover {
+    background-color: var(--accent-color) !important;
+    filter: brightness(90%);
+  }
+
+  .hover\:bg-neutral-700:hover {
+    background-color: var(--primary-color) !important;
+    filter: brightness(90%);
+  }
+
+  /* Custom font family */
+  @font-face {
+    font-family: "CustomFont";
+    src: var(--custom-font-src);
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  .font-sans {
+    font-family: var(--custom-font-family, var(--font-archivo)), ui-sans-serif,
+      system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  }
+
+  button {
+    line-height: normal;
+  }
+
+  .c-json-view {
+    background-color: #fbfbfb00 !important;
+  }
+
+  /* Tiptap Editor Styles */
+  .ProseMirror {
+    min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
+    outline: none;
+  }
+
+  .ProseMirror p {
+    margin: 0;
+  }
+
+  .ProseMirror p + p {
+    margin-top: 0.75rem;
+  }
+
+  /* Placeholder styles */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af;
+    pointer-events: none;
+    height: 0;
+  }
+
+  /* Mention styles */
+  .ProseMirror .mention {
+    background-color: rgb(251 191 36 / 0.2);
+    color: rgb(180 83 9);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-block;
+    line-height: 1.2;
+    vertical-align: baseline;
+  }
+
+  .ProseMirror .mention:hover {
+    background-color: rgb(251 191 36 / 0.3);
+  }
+
+  /* Tippy.js tooltip styles for mentions dropdown */
+  .tippy-box {
+    background-color: transparent !important;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .tippy-arrow {
+    display: none !important;
+  }
+
+  .tippy-content {
+    padding: 0 !important;
+  }
+
+  /* Lists styling */
+  .ProseMirror ul,
+  .ProseMirror ol {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+  }
+
+  .ProseMirror ul li,
+  .ProseMirror ol li {
+    margin: 0.25rem 0;
+  }
+
+  .ProseMirror ul {
+    list-style-type: disc;
+  }
+
+  .ProseMirror ol {
+    list-style-type: decimal;
+  }
+
+  .ProseMirror ul ul {
+    list-style-type: circle;
+  }
+
+  .ProseMirror ul ul ul {
+    list-style-type: square;
+  }
+
+  /* Inline code */
+  .ProseMirror code {
+    background-color: rgb(243 244 246);
+    color: rgb(31 41 55);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: "JetBrains Mono", "Consolas", "Monaco", "Courier New",
+      monospace;
+    font-size: 0.875em;
+  }
+
+  .ProseMirror strong {
+    font-weight: 700;
+  }
+
+  .ProseMirror em {
+    font-style: italic;
+  }
+
+  .ProseMirror s,
+  .ProseMirror del {
+    text-decoration: line-through;
+  }
+
+  .ProseMirror p {
+    margin: 0.5rem 0;
+  }
+
+  .ProseMirror p:first-child {
+    margin-top: 0;
+  }
+
+  .ProseMirror p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ProseMirror li > p {
+    margin: 0;
+  }
+
+  .ProseMirror ::selection {
+    background-color: rgb(185 211 253);
+  }
+
+  .ProseMirror:focus-visible {
+    outline: none;
+  }
+
+  .tippy-box[data-theme~="bubble-menu"] {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .format-status-bar {
+    transition: all 0.2s ease-in-out;
+  }
+}
+
+/* Utility classes that need to work at the layer level */
+@layer utilities {
+  .rulebricks-embed .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .rulebricks-embed .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

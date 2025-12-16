@@ -1,0 +1,88 @@
+{
+  "name": "@rulebricks/embedded",
+  "version": "0.1.2",
+  "private": false,
+  "description": "Embed Rulebricks decision tables in your application",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./server": {
+      "import": "./dist/server.esm.js",
+      "require": "./dist/server.cjs.js"
+    }
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "dev": "rollup -c rollup.config.mjs -w",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.17",
+    "@heroicons/react": "^2.1.1",
+    "@jsonhero/json-infer-types": "^1.2.4",
+    "@tabler/icons-react": "^3.34.0",
+    "acorn": "^8.11.2",
+    "acorn-walk": "^8.3.1",
+    "classnames": "^2.5.1",
+    "deep-equal": "^2.2.3",
+    "flat": "^6.0.1",
+    "framer-motion": "^10.16.16",
+    "js-beautify": "^1.14.11",
+    "json5": "^2.2.3",
+    "jsondiffpatch": "^0.6.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.6.0",
+    "nanoid": "^5.0.6",
+    "random-color": "^1.0.1",
+    "react": "^18.2.0",
+    "react-data-grid": "7.0.0-beta.30",
+    "react-datetime": "^3.3.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-popper": "^2.3.0",
+    "react-query": "^3.39.3",
+    "react-select": "^5.8.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "@babel/preset-react": "^7.23.3",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "rollup": "^4.9.1",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
+    "tailwindcss": "^3.2.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulebricks/embedded"
+  },
+  "keywords": [
+    "rulebricks",
+    "decision-table",
+    "business-rules",
+    "embeddable",
+    "react"
+  ],
+  "author": "Rulebricks",
+  "license": "MIT"
+}
