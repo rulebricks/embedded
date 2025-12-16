@@ -1,6 +1,6 @@
 {
   "name": "@rulebricks/embedded",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "Embed Rulebricks decision tables in your application",
   "main": "dist/index.cjs.js",
