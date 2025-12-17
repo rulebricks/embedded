@@ -4,7 +4,7 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/20/solid";
 import { IconGridDots, IconSearch } from "@tabler/icons-react";
-import PageLoader from "../PageLoader";
+import PageLoader from "../ui/PageLoader";
 import moment from "moment/moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DataGrid from "react-data-grid";
@@ -22,9 +22,12 @@ import {
   parseExternalClipboardData,
   prepareRequestCellPasteData,
   prepareResponseCellPasteData,
-} from "./util/externalPaste";
-import { useRowUtils, withinSchedule } from "./util/util";
-import { useEmbedRuleMutator } from "./util/embedMutator";
+} from "../../utils/clipboard";
+import { useRowUtils } from "../../hooks/useRowUtils";
+import { withinSchedule } from "../../utils/schedule";
+import { useEmbedRuleMutator } from "../../hooks/useEmbedRuleMutator";
+import { splitKey } from "../../utils/table";
+import { batchDebounce } from "../../utils/concurrency";
 import { useOperators } from "../../context/OperatorsContext";
 
 export default function RuleEditorTable({
@@ -421,22 +424,6 @@ export default function RuleEditorTable({
     selectedCell,
   ]);
 
-  function splitKey(columnKey) {
-    if (columnKey.startsWith("request.")) {
-      return {
-        section: "request",
-        column: columnKey.split("request.").splice(1).join(""),
-      };
-    }
-    if (columnKey.startsWith("response.")) {
-      return {
-        section: "response",
-        column: columnKey.split("response.").splice(1).join(""),
-      };
-    }
-    return null;
-  }
-
   async function sendAction(action, args) {
     if (
       !["undoRuleUpdate", "redoRuleUpdate", "toggleColumnPin"].includes(action)
@@ -630,25 +617,6 @@ export default function RuleEditorTable({
       sectionKey: section,
       rowIdxs: new Set(Array.from(rowIdxs)),
     });
-  }
-
-  function batchDebounce(func, wait) {
-    let timerId = null;
-    const calls = new Map();
-
-    return ({ columnKey, sourceRow, targetRow }) => {
-      const key = JSON.stringify({ columnKey, sourceRow: sourceRow.id });
-      if (!calls.has(key)) {
-        calls.set(key, { columnKey, sourceRow, targetRows: [] });
-      }
-      calls.get(key).targetRows.push(targetRow);
-
-      clearTimeout(timerId);
-      timerId = setTimeout(() => {
-        calls.forEach((call) => func(call));
-        calls.clear();
-      }, wait);
-    };
   }
 
   const debouncedFill = batchDebounce(handleFill, 50);

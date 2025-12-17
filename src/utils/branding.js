@@ -1,4 +1,3 @@
-// util/branding.js (embed package)
 // Ported from app `src/util/branding.js` so embed behaves identically (colors, radius, Google font loading).
 
 const styleElements = {
@@ -10,6 +9,10 @@ const styleElements = {
 
 let currentBranding = null;
 
+/**
+ * Applies branding settings to the embed.
+ * @param {Object} brandingSettings - The branding settings object.
+ */
 export const applyBranding = async (brandingSettings) => {
   if (!brandingSettings || typeof document === "undefined") return;
 
@@ -39,6 +42,11 @@ export const applyBranding = async (brandingSettings) => {
   }
 };
 
+/**
+ * Generates CSS for border radius.
+ * @param {string} borderRadius - The border radius setting ('none', 'default', 'large').
+ * @returns {string} The CSS string.
+ */
 export const getBorderRadiusCss = (borderRadius) => {
   let radiusValue = "0.125rem";
   let loadingRadiusValue = "0rem";
@@ -125,6 +133,12 @@ const applyBorderRadius = (borderRadius) => {
     .replaceAll(".rounded-", '[data-embed-container="true"] .rounded-');
 };
 
+/**
+ * Generates CSS for colors.
+ * @param {string} primaryColor - The primary color hex code.
+ * @param {string} accentColor - The accent color hex code.
+ * @returns {string} The CSS string.
+ */
 export const getColorsCss = (primaryColor, accentColor) => {
   const pColor = primaryColor || "#000000";
   const aColor = accentColor || "#f59e0b";
@@ -163,11 +177,21 @@ const applyColors = (primaryColor, accentColor) => {
   ).replaceAll(":root", '[data-embed-container="true"]');
 };
 
+/**
+ * Generates the Google Font URL.
+ * @param {string} fontName - The name of the font.
+ * @returns {string} The Google Font URL.
+ */
 export const getGoogleFontUrl = (fontName) => {
   const formattedFontName = fontName.replace(" ", "+");
   return `https://fonts.googleapis.com/css2?family=${formattedFontName}:wght@400;500;600;700&display=swap`;
 };
 
+/**
+ * Generates CSS for Google Font.
+ * @param {string} fontName - The name of the font.
+ * @returns {string} The CSS string.
+ */
 export const getGoogleFontCss = (fontName) => {
   // Apply font-family to all text elements within the embed container
   return `

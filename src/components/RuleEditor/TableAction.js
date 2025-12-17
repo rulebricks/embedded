@@ -1,8 +1,8 @@
 import { nanoid } from "nanoid";
 import randomColorLib from "random-color";
 import { processValue } from "./TypeEditor";
-import { getColumnSchema, mergeSchemas } from "./util/models";
-import { setPath } from "./util/util";
+import { getColumnSchema, mergeSchemas } from "../../utils/schema";
+import { setPath } from "../../utils/object";
 
 const randomColor = () => randomColorLib().hexString();
 const structuredClone = (obj) => JSON.parse(JSON.stringify(obj));

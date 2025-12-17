@@ -1,9 +1,9 @@
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import RuleEditorTable from "./components/RuleEditor/RuleEditorTable";
-import LoadingSpinner from "./components/LoadingSpinner";
-import ErrorDisplay from "./components/ErrorDisplay";
-import { applyBranding } from "./util/branding";
+import LoadingSpinner from "./components/ui/LoadingSpinner";
+import ErrorDisplay from "./components/ui/ErrorDisplay";
+import { applyBranding } from "./utils/branding";
 import {
   OperatorsProvider,
   DEFAULT_OPERATORS_URL,

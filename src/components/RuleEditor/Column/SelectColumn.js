@@ -9,9 +9,9 @@ import classNames from "classnames";
 import { useState } from "react";
 import { useFocusRef, useRowSelection } from "react-data-grid";
 
-import EmbeddedModalOverlay from "../EmbeddedModalOverlay";
+import Modal from "../../ui/Modal";
 import { RowSettingsModal } from "../Row/RowSettingsModal";
-import { withinSchedule } from "../util/util";
+import { withinSchedule } from "../../../utils/schedule";
 
 const width = 165;
 
@@ -93,7 +93,7 @@ export function SelectCellFormatter({
               >
                 <Cog6ToothIcon className="w-full h-full" />
               </button>
-              <EmbeddedModalOverlay
+              <Modal
                 open={rowSettingsOpen}
                 close={() => setRowSettingsOpen(false)}
                 title="Row Settings"
@@ -105,7 +105,7 @@ export function SelectCellFormatter({
                   tabIdx={initTabIdx}
                   selectedRows={selectedRows}
                 />
-              </EmbeddedModalOverlay>
+              </Modal>
             </>
           )}
         </div>

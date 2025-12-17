@@ -1,6 +1,6 @@
 {
   "name": "@rulebricks/embedded",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "private": false,
   "description": "Embed Rulebricks decision tables in your application",
   "main": "dist/index.cjs.js",
@@ -100,5 +100,5 @@
     "react"
   ],
   "author": "Rulebricks",
-  "license": "MIT"
+  "license": "Elastic License 2.0"
 }

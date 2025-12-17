@@ -1,12 +1,20 @@
 /**
- * Models utility for embed package
+ * Gets the column schema for a given key.
+ * @param {Array} schema - The schema array.
+ * @param {string} key - The key to look for.
+ * @returns {Object|null} The column schema object or null if not found.
  */
-
 export function getColumnSchema(schema, key) {
   if (!schema || !Array.isArray(schema)) return null;
   return schema.find((col) => col.key === key) || null;
 }
 
+/**
+ * Merges two schema arrays.
+ * @param {Array} schema1 - The first schema array.
+ * @param {Array} schema2 - The second schema array.
+ * @returns {Array} The merged schema array.
+ */
 export function mergeSchemas(schema1, schema2) {
   if (!schema1 && !schema2) return [];
   if (!schema1) return schema2;
@@ -19,19 +27,5 @@ export function mergeSchemas(schema1, schema2) {
     }
   });
   return merged;
-}
-
-/**
- * Determines the type of a value for the JSON editor
- */
-export function getValueType(value) {
-  if (value === null || value === undefined) return "string";
-  if (Array.isArray(value)) return "list";
-  if (value instanceof Date) return "date";
-  const type = typeof value;
-  if (type === "object") return "object";
-  if (type === "number") return "number";
-  if (type === "boolean") return "boolean";
-  return "string";
 }
 

@@ -7,8 +7,8 @@ import classNames from "classnames";
 import { unflatten } from "flat";
 import { js as beautify } from "js-beautify";
 import { useEffect, useRef, useState } from "react";
-import EmbeddedModalOverlay from "../EmbeddedModalOverlay";
-import standardLibraries from "../util/standard-libraries";
+import Modal from "../../ui/Modal";
+import standardLibraries from "../../../constants/standardLibraries";
 
 export default function CodeEditor({
   value,
@@ -22,7 +22,7 @@ export default function CodeEditor({
   multiline = false,
   globalValues,
   zoom = null,
-  maxWidth = "max-w-sm"
+  maxWidth = "max-w-sm",
 }) {
   const cmRef = useRef(null);
   const modalCmRef = useRef(null);
@@ -37,7 +37,7 @@ export default function CodeEditor({
           ...unflatten(request),
           ...unflatten(response),
           ...context,
-          ...standardLibraries
+          ...standardLibraries,
         }),
         (context) => {
           const word = context.matchBefore(/\$[^$(]*$/);
@@ -51,15 +51,15 @@ export default function CodeEditor({
                 ? v.value.includes(" => ")
                   ? v.value.split(" => ")[0].substring(1)
                   : v.value
-                : JSON.stringify(v.value)
+                : JSON.stringify(v.value),
             }));
           }
           return {
             from: word.from,
-            options: globalCompletions
+            options: globalCompletions,
           };
-        }
-      ]
+        },
+      ],
     });
   };
 
@@ -71,7 +71,7 @@ export default function CodeEditor({
         space_in_empty_paren: true,
         preserve_newlines: true,
         max_preserve_newlines: 2,
-        wrap_line_length: 40
+        wrap_line_length: 40,
       });
       setValue(formattedCode);
       setJustFormatted(true);
@@ -115,7 +115,9 @@ export default function CodeEditor({
     return (
       <div className="relative w-full h-full z-0">
         <div
-          className={`${disabled ? "opacity-50 pointer-events-none" : ""} h-auto cursor-text nodrag overflow-x-hidden border border-neutral-300 focus-within:outline outline-2 outline-blue-500 -outline-offset-1 rounded-sm bg-white p-1 py-[0.3rem] ${maxWidth}`}
+          className={`${
+            disabled ? "opacity-50 pointer-events-none" : ""
+          } h-auto cursor-text nodrag overflow-x-hidden border border-neutral-300 focus-within:outline outline-2 outline-blue-500 -outline-offset-1 rounded-sm bg-white p-1 py-[0.3rem] ${maxWidth}`}
         >
           {/* Toolbar */}
           <div className="absolute right-1.5 bottom-1.5 flex z-[1]">
@@ -151,7 +153,7 @@ export default function CodeEditor({
               updateZoom(zoom);
             }}
             style={{
-              fontSize: "14px"
+              fontSize: "14px",
             }}
             id="jsCodeEditor"
             className="font-mono overflow-hidden"
@@ -159,8 +161,8 @@ export default function CodeEditor({
               javascript(),
               createCompletionExtension(),
               tooltips({
-                parent: document.body
-              })
+                parent: document.body,
+              }),
             ]}
             placeholder={
               placeholder ||
@@ -180,12 +182,12 @@ export default function CodeEditor({
               highlightActiveLine: false,
               autocompletion: true,
               singleCursorHeightPerLine: false,
-              cursorHeight: "14px"
+              cursorHeight: "14px",
             }}
           />
         </div>
         {/* Modal for expanded view */}
-        <EmbeddedModalOverlay
+        <Modal
           open={modalOpen}
           close={() => setModalOpen(false)}
           title="Edit JavaScript"
@@ -211,15 +213,15 @@ export default function CodeEditor({
                 ref={modalCmRef}
                 style={{
                   fontSize: "0.875rem",
-                  fontFamily: "monospace"
+                  fontFamily: "monospace",
                 }}
                 className="text-sm p-2 font-mono h-full border border-neutral-200 rounded-sm"
                 extensions={[
                   javascript(),
                   createCompletionExtension(),
                   tooltips({
-                    parent: document.body
-                  })
+                    parent: document.body,
+                  }),
                 ]}
                 placeholder={
                   placeholder ||
@@ -238,12 +240,12 @@ export default function CodeEditor({
                   autoCloseBrackets: true,
                   styleActiveLine: true,
                   highlightActiveLine: true,
-                  autocompletion: true
+                  autocompletion: true,
                 }}
               />
             </div>
           </div>
-        </EmbeddedModalOverlay>
+        </Modal>
       </div>
     );
   }
@@ -252,7 +254,9 @@ export default function CodeEditor({
   return (
     <div className="relative w-full h-full z-0">
       <div
-        className={`cursor-pointer overflow-hidden -ml-1 mr-2 filter duration-200 scale-100 origin-center mix-blend-darken ${multiline ? "" : "h-[1.75rem]"}`}
+        className={`cursor-pointer overflow-hidden -ml-1 mr-2 filter duration-200 scale-100 origin-center mix-blend-darken ${
+          multiline ? "" : "h-[1.75rem]"
+        }`}
       >
         {/* Toolbar for readonly mode */}
         <div className="absolute right-1.5 top-1.5 flex z-[1]">
@@ -281,13 +285,15 @@ export default function CodeEditor({
         </div>
         <ReactCodeMirror
           id="jsCodeEditor"
-          className={`font-mono font-medium truncate ${multiline ? "" : "pointer-events-none"}`}
+          className={`font-mono font-medium truncate ${
+            multiline ? "" : "pointer-events-none"
+          }`}
           extensions={[
             javascript(),
             createCompletionExtension(),
             tooltips({
-              parent: document.body
-            })
+              parent: document.body,
+            }),
           ]}
           placeholder={placeholder || "Enter JS expression..."}
           value={value ? value.replaceAll("\n  ", "").replaceAll("\n", "") : ""}
@@ -301,12 +307,12 @@ export default function CodeEditor({
             autoCloseBrackets: true,
             styleActiveLine: false,
             highlightActiveLine: false,
-            autocompletion: true
+            autocompletion: true,
           }}
         />
       </div>
       {/* Modal for expanded view */}
-      <EmbeddedModalOverlay
+      <Modal
         open={modalOpen}
         close={() => setModalOpen(false)}
         title="View JavaScript"
@@ -332,22 +338,24 @@ export default function CodeEditor({
               ref={modalCmRef}
               style={{
                 fontSize: "0.875rem",
-                fontFamily: "monospace"
+                fontFamily: "monospace",
               }}
               className="text-sm p-2 font-mono h-full border border-neutral-200 rounded-sm"
               extensions={[
                 javascript(),
                 createCompletionExtension(),
                 tooltips({
-                  parent: document.body
-                })
+                  parent: document.body,
+                }),
               ]}
               placeholder={placeholder || "Enter JS expression..."}
               height="auto"
               value={
                 multiline
                   ? value
-                  : value ? value.replaceAll("\n  ", "").replaceAll("\n", "") : ""
+                  : value
+                  ? value.replaceAll("\n  ", "").replaceAll("\n", "")
+                  : ""
               }
               readOnly={true}
               onChange={setValue}
@@ -359,12 +367,12 @@ export default function CodeEditor({
                 autoCloseBrackets: true,
                 styleActiveLine: true,
                 highlightActiveLine: true,
-                autocompletion: true
+                autocompletion: true,
               }}
             />
           </div>
         </div>
-      </EmbeddedModalOverlay>
+      </Modal>
     </div>
   );
 }

@@ -5,13 +5,13 @@ import * as ReactDatetime from "react-datetime";
 import Select from "react-select";
 
 const Datetime = ReactDatetime.default || ReactDatetime;
-import CodeEditor from "./Sidebar/CodeEditor";
+import CodeEditor from "./Inputs/CodeEditor";
 import JsonEditor, {
   tryParseJSON,
   tryParseJSONArray,
   tryParsePrimitive,
-} from "./Sidebar/JsonEditor";
-import ObjectEditor from "./Sidebar/ObjectEditor";
+} from "./Inputs/JsonEditor";
+import ObjectEditor from "./Inputs/ObjectEditor";
 
 export function StringEditor({
   value,

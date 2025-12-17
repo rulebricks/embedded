@@ -31,7 +31,7 @@ import {
 } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import EmbeddedModalOverlay from "../EmbeddedModalOverlay";
+import Modal from "../../ui/Modal";
 import { getValueType } from "../../../utils/typeValidation";
 
 // Field name input component that prevents re-renders during editing
@@ -836,7 +836,7 @@ export default function JsonEditor({
           />
         )}
       </div>
-      <EmbeddedModalOverlay
+      <Modal
         open={modalOpen}
         close={() => setModalOpen(false)}
         title="Edit JSON/Schema"
@@ -915,7 +915,7 @@ export default function JsonEditor({
             )}
           </div>
         </div>
-      </EmbeddedModalOverlay>
+      </Modal>
     </div>
   );
 }

@@ -10,9 +10,9 @@ import {
   IconPinFilled,
 } from "@tabler/icons-react";
 import classNames from "classnames";
-import Tooltip from "../../Rule/Tooltip";
+import Tooltip from "../../ui/Tooltip";
 import { useEffect, useState } from "react";
-import { capitalize } from "../util/util";
+import { capitalize } from "../../../utils/string";
 import { useOperators } from "../../../context/OperatorsContext";
 
 export default function HeaderCell({

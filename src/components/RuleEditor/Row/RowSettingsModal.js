@@ -7,10 +7,10 @@ import {
 } from "@tabler/icons-react";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
-import CodeEditor from "../Sidebar/CodeEditor";
-import Toggle from "../Toggle";
+import CodeEditor from "../Inputs/CodeEditor";
+import Toggle from "../../ui/Toggle";
 
-import { typedStrategyOptions } from "../util/policies";
+import { typedStrategyOptions } from "../../../constants/strategies";
 
 const tabs = ["Row Activation", "Group Activation"];
 const daysOfWeek = [

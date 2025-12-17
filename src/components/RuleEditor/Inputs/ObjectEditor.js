@@ -3,7 +3,7 @@ import { IconCheck, IconCopy, IconMaximize } from "@tabler/icons-react";
 import classNames from "classnames";
 import JSON5 from "json5";
 import { useState } from "react";
-import EmbeddedModalOverlay from "../EmbeddedModalOverlay";
+import Modal from "../../ui/Modal";
 
 // Re-export JSON parsing utilities from JsonEditor for backwards compatibility
 export {
@@ -83,7 +83,7 @@ export default function ObjectEditor({
           type: "whole",
         }}
       />
-      <EmbeddedModalOverlay
+      <Modal
         open={modalOpen}
         close={() => setModalOpen(false)}
         title="Edit Object"
@@ -124,7 +124,7 @@ export default function ObjectEditor({
             />
           </div>
         </div>
-      </EmbeddedModalOverlay>
+      </Modal>
     </div>
   );
 }

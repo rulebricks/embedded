@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
  * as a full-screen panel instead of a centered modal.
  * Uses a portal to find the closest embed container.
  */
-export default function EmbeddedModalOverlay({ open, close, title, children }) {
+export default function Modal({ open, close, title, children }) {
   if (!open) return null;
 
   // Portal to the embed container to ensure full coverage

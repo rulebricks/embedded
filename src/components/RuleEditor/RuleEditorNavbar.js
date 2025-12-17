@@ -10,7 +10,7 @@ import {
   IconTransitionTopFilled,
 } from "@tabler/icons-react";
 import classNames from "classnames";
-import Tooltip from "../Rule/Tooltip";
+import Tooltip from "../ui/Tooltip";
 import deepEqual from "deep-equal";
 import { useEffect, useState } from "react";
 import tableActions from "./TableAction";

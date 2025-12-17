@@ -1,40 +1,12 @@
-export function setPath(obj, path, value) {
-  const branches = path;
-  branches.slice(0, -1).forEach((branch) => {
-    obj = obj[branch];
-  });
-  obj[branches[branches.length - 1]] = value;
-}
-
-export function capitalize(str) {
-  return str ? `${str[0].toUpperCase()}${str.slice(1)}` : "";
-}
-
-export function withinSchedule(schedule) {
-  // where `schedule` is an array like [ { day: "Monday", from: "10:02", to: "23:00" }, ... ]
-  // in 24h format, GMT
-  const now = new Date();
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const day = days[now.getUTCDay()];
-  const hours = now.getUTCHours().toString().padStart(2, "0");
-  const minutes = now.getUTCMinutes().toString().padStart(2, "0");
-  const time = `${hours}:${minutes}`;
-
-  const currentSchedule = schedule.find((s) => s.day === day);
-  if (!currentSchedule) return false;
-
-  const { from, to } = currentSchedule;
-  return time >= from && time <= to;
-}
-
+/**
+ * Hook for row manipulation utilities (reordering).
+ * @param {Function} setRows - State setter for rows.
+ * @param {Set} selectedRows - Set of selected row indices.
+ * @param {Function} setSelectedRows - State setter for selected rows.
+ * @param {Object} updateRule - Mutation object for updating the rule.
+ * @param {Object} user - The current user object.
+ * @returns {Object} An object containing onRowReorder and onRowsReorder functions.
+ */
 export function useRowUtils(
   setRows,
   selectedRows,
@@ -87,3 +59,4 @@ export function useRowUtils(
 
   return { onRowReorder, onRowsReorder };
 }
+
