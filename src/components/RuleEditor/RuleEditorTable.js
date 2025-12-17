@@ -11,7 +11,6 @@ import DataGrid from "react-data-grid";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useQuery, useQueryClient } from "react-query";
-import { applyBranding } from "../../util/branding";
 import RequestColumn from "./Column/RequestColumn";
 import ResponseColumn from "./Column/ResponseColumn";
 import SelectColumn from "./Column/SelectColumn";
@@ -28,11 +27,6 @@ import { useRowUtils, withinSchedule } from "./util/util";
 import { useEmbedRuleMutator } from "./util/embedMutator";
 import { useOperators } from "../../context/OperatorsContext";
 
-const tabNameToKeys = {
-  request: { json: "sampleRequest", schema: "requestSchema" },
-  response: { json: "sampleResponse", schema: "responseSchema" },
-};
-
 export default function RuleEditorTable({
   ruleOverride = null,
   globalValuesOverride = null,
@@ -48,6 +42,7 @@ export default function RuleEditorTable({
   showControls = true, // Whether to show the top navbar with controls
   showRowSettings = false, // Whether to show the gear icon in rows
   onRuleChange = null,
+  onPublish = null,
   // Configurable column labels
   requestLabel = null,
   responseLabel = null,
@@ -62,35 +57,6 @@ export default function RuleEditorTable({
 
   // Always use explicit ruleId in embed
   const id = explicitRuleId;
-
-  useEffect(() => {
-    if (!embedToken || !apiBaseUrl) return;
-
-    const fetchBranding = async () => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/api/embed/branding`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Embed-Token": embedToken,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.branding) {
-            applyBranding(data.branding);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch embed branding:", error);
-      }
-    };
-
-    fetchBranding();
-  }, [embedToken, apiBaseUrl]);
-
-  // Realtime channel is not used in embed mode
 
   const [onlineMembers, setOnlineMembers] = useState([]);
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -179,17 +145,9 @@ export default function RuleEditorTable({
   const globalValues = globalValuesOverride || [];
 
   const lockedSchema = !canViewSchema;
+
   // Sidebar is always hidden in embed mode
-  const initialTab = () => null;
-
-  const [activeTab, setActiveTab] = useState(initialTab());
-
-  // Sidebar stays closed in embed mode
-  useEffect(() => {
-    if (activeTab !== null) {
-      setActiveTab(null);
-    }
-  }, [activeTab]);
+  const [activeTab, setActiveTab] = useState(null);
 
   // Reset internal copy flag when user does external copy
   useEffect(() => {
@@ -311,20 +269,7 @@ export default function RuleEditorTable({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [sendAction]);
 
-  function getInitialColumnKey(tabName) {
-    if (!rule) {
-      return null;
-    }
-    if (!tabNameToKeys[tabName]) {
-      return null;
-    }
-    const columnSchema = rule[tabNameToKeys[tabName].schema];
-    return columnSchema[0] ? columnSchema[0].key : null;
-  }
-
-  const [focusedColumnKey, setFocusedColumnKey] = useState(() =>
-    getInitialColumnKey(activeTab)
-  );
+  const [focusedColumnKey, setFocusedColumnKey] = useState(null);
   // Global paste handler for when grid's onPaste isn't active
   // Must be before conditional returns to follow React hooks rules
   useEffect(() => {
@@ -710,7 +655,6 @@ export default function RuleEditorTable({
 
   return (
     <>
-      {/* Meta tag skipped in embed mode */}
       <div
         className="flex flex-col text-editorBlack overflow-hidden relative"
         style={{ height: "100%", maxHeight: "100%" }}
@@ -731,6 +675,7 @@ export default function RuleEditorTable({
             canPublish={canPublish}
             embedToken={embedToken}
             apiBaseUrl={apiBaseUrl}
+            onPublish={onPublish}
             onOpenCommandPalette={() => {
               // AI palette is disabled in embed mode
             }}
@@ -919,21 +864,16 @@ export default function RuleEditorTable({
               selectedRows={selectedRows}
               onSelectedRowsChange={setSelectedRows}
               className="flex-1 rdg-light select-none h-full bg-editorBgGray gap-0.5 pt-10"
-              // virtualization causes a scrolling issue, because columns
-              // change the grid size when they're added. keep it disabled
               enableVirtualization={true}
               headerRowHeight={75}
               rowHeight={44}
             />
           </DndProvider>
 
-          {/* AI Palette is disabled in embed mode */}
-
           {/* need a little box to hide the checkbox row from scrolling out of the top */}
           <div className="absolute left-0 top-0 h-10 w-[166px] z-0 bg-editorBgGray border-r border-b">
             &nbsp;
           </div>
-          {/* Sidebar disabled in embed mode */}
         </div>
         {showFooter && (
           <div

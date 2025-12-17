@@ -5,66 +5,12 @@ import JSON5 from "json5";
 import { useState } from "react";
 import EmbeddedModalOverlay from "../EmbeddedModalOverlay";
 
-export function tryParseJSON(v) {
-  let value;
-  let error;
-  try {
-    const parsed = JSON5.parse(v);
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      Array.isArray(parsed)
-    ) {
-      value = null;
-      error = "Value is not a JSON object.";
-    } else {
-      value = parsed;
-      error = null;
-    }
-  } catch (e) {
-    value = null;
-    error = e.message;
-  }
-  return { value, error };
-}
-
-export function tryParseJSONArray(v) {
-  let value;
-  let error;
-  try {
-    const parsed = typeof v !== "object" ? JSON5.parse(v) : v;
-    if (!Array.isArray(parsed)) {
-      value = null;
-      error = "Value is not a list.";
-    } else {
-      value = parsed;
-      error = null;
-    }
-  } catch (e) {
-    value = null;
-    error = e.message;
-  }
-  return { value, error };
-}
-
-export function tryParsePrimitive(v) {
-  let value;
-  let error;
-  try {
-    const parsed = JSON5.parse(v);
-    if (typeof parsed !== "object" || parsed === null) {
-      value = parsed;
-      error = null;
-    } else {
-      value = null;
-      error = "Value is not a primitive.";
-    }
-  } catch (e) {
-    value = null;
-    error = e.message;
-  }
-  return { value, error };
-}
+// Re-export JSON parsing utilities from JsonEditor for backwards compatibility
+export {
+  tryParseJSON,
+  tryParseJSONArray,
+  tryParsePrimitive,
+} from "./JsonEditor";
 
 export default function ObjectEditor({
   value,

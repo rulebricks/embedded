@@ -40,17 +40,6 @@ export default function HeaderCell({
 
   const [sectionHeaderRef, setSectionHeaderRef] = useState();
   const [width, setWidth] = useState(165); // Default width for non-first columns
-  const [_pinnedCols, setPinnedCols] = useState([]);
-
-  useEffect(() => {
-    let currPinnedCols = Array.from(
-      sectionHeaderRef?.parentElement?.parentElement?.parentElement?.querySelectorAll(
-        ".rdg-cell-frozen"
-      ) || []
-    ).slice(1);
-
-    setPinnedCols(currPinnedCols);
-  }, [sectionHeaderRef, isPinned]);
 
   // Function to calculate width
   const calculateWidth = () => {
@@ -67,7 +56,6 @@ export default function HeaderCell({
         // Use a simpler approach - count columns until we reach a different section
         const currentSectionColumns = [];
         let foundSection = false;
-        let _movedToNextSection = false;
 
         for (const colHeader of colHeaders) {
           // Skip the first select/placeholder column
@@ -85,7 +73,6 @@ export default function HeaderCell({
               currentSectionColumns.push(colHeader);
             } else if (foundSection) {
               // We've moved past our section
-              _movedToNextSection = true;
               break;
             }
           }
@@ -139,7 +126,6 @@ export default function HeaderCell({
       : "";
 
   return (
-    // XXX DO NOT CHANGE OUTER DIV OR THE WORLD ENDS
     <div name={`${sectionKey}`} className="h-full">
       {colIdx === 0 && (
         <div

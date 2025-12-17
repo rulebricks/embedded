@@ -53,7 +53,7 @@ function handleRulebricksObject(value, globalValues) {
   return false;
 }
 
-function StringFormatter({ children, _user, globalValues }) {
+function StringFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -74,7 +74,7 @@ function StringFormatter({ children, _user, globalValues }) {
   );
 }
 
-function NumberFormatter({ children, _user, globalValues }) {
+function NumberFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -89,7 +89,7 @@ function NumberFormatter({ children, _user, globalValues }) {
   );
 }
 
-function BooleanFormatter({ children, _user, globalValues }) {
+function BooleanFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -104,7 +104,7 @@ function BooleanFormatter({ children, _user, globalValues }) {
   );
 }
 
-function ListFormatter({ children, _user, globalValues }) {
+function ListFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (children.length === 0 && Array.isArray(children))
     return <div className="text-editorDisabledGray font-mono">[]</div>;
@@ -145,7 +145,7 @@ function ListFormatter({ children, _user, globalValues }) {
   );
 }
 
-function ObjectFormatter({ children, _user, globalValues }) {
+function ObjectFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -175,7 +175,7 @@ function ObjectFormatter({ children, _user, globalValues }) {
   );
 }
 
-function DateFormatter({ children, _user, globalValues }) {
+function DateFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -196,7 +196,7 @@ function DateFormatter({ children, _user, globalValues }) {
   );
 }
 
-function GenericFormatter({ children, _user, globalValues }) {
+function GenericFormatter({ children, globalValues }) {
   const rulebricksObjectFormat = handleRulebricksObject(children, globalValues);
   if (rulebricksObjectFormat) {
     return rulebricksObjectFormat;
@@ -232,7 +232,7 @@ const Formatters = {
   object: ObjectFormatter,
 };
 
-export default function TypeFormatter({ type, children, options = {} }) {
+export default function TypeFormatter({ type, children }) {
   // In embed mode, global values come from parent component
   const globalValues = [];
 
@@ -242,7 +242,7 @@ export default function TypeFormatter({ type, children, options = {} }) {
 
   const Formatter = Formatters[type];
   return (
-    <Formatter options={options} user={null} globalValues={globalValues}>
+    <Formatter globalValues={globalValues}>
       {children}
     </Formatter>
   );

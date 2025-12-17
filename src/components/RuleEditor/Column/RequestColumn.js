@@ -36,7 +36,6 @@ export default function RequestColumn(
     formatter: ({ row, isCellSelected }) => {
       return (
         <RequestCell
-          idx={row.id}
           cellData={row.data.request[key]}
           rowSettings={row.data.settings}
           updateCellData={(newData) =>
@@ -49,7 +48,6 @@ export default function RequestColumn(
           }
           selected={isCellSelected}
           deactivated={row.data.settings ? !row.data.settings.enabled : false}
-          colIdx={colIdx}
           type={type}
           showTest={
             showTest &&
@@ -62,7 +60,6 @@ export default function RequestColumn(
           globalValues={globalValues}
           requestSchema={requestSchema.find((s) => s.key === key)}
           readOnly={readOnly}
-          lockedSchema={lockedSchema}
           isPinned={isPinned}
         />
       );

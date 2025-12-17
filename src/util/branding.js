@@ -10,14 +10,7 @@ const styleElements = {
 
 let currentBranding = null;
 
-export const initializeBranding = (user) => {
-  if (user?.data?.branding) {
-    applyBranding(user.data.branding);
-    currentBranding = { ...user.data.branding };
-  }
-};
-
-export const applyBranding = (brandingSettings) => {
+export const applyBranding = async (brandingSettings) => {
   if (!brandingSettings || typeof document === "undefined") return;
 
   currentBranding = { ...brandingSettings };
@@ -34,6 +27,15 @@ export const applyBranding = (brandingSettings) => {
     applyGoogleFont(brandingSettings.font);
   } else {
     resetFonts();
+  }
+
+  // Wait for fonts to be fully loaded before returning
+  if (brandingSettings.font || brandingSettings.customFontUrl) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Font loading API not supported or failed, continue anyway
+    }
   }
 };
 

@@ -76,7 +76,6 @@ function App() {
 | `showFooter`      | `boolean`  | `true`                   | Show bottom status bar        |
 | `showControls`    | `boolean`  | `true`                   | Show top navbar               |
 | `showRowSettings` | `boolean`  | `false`                  | Show row settings gear icon   |
-| `onSave`          | `function` | –                        | Called when rule is saved     |
 | `onPublish`       | `function` | –                        | Called when rule is published |
 | `onError`         | `function` | –                        | Called on errors              |
 

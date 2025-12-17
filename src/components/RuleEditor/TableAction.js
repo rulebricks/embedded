@@ -253,13 +253,9 @@ function moveSelectedRowsToBottom({
   });
 }
 
-function toggleSidebar() {
-  // Sidebar disabled in embed mode
-}
+function toggleSidebar() {}
 
-function openSidebarToColumn() {
-  // Sidebar disabled in embed mode
-}
+function openSidebarToColumn() {}
 
 function updateRuleName({ updateRule, user }, { name }) {
   updateRule.mutate({

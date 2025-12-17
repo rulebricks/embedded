@@ -1,4 +1,3 @@
-// structuredClone is a built-in global in modern browsers/Node.js
 import json5 from "json5";
 
 /**

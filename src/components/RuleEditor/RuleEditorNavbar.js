@@ -5,20 +5,17 @@ import {
   IconArrowForwardUp,
   IconBolt,
   IconCircleDotted,
-  IconListCheck,
   IconLoader,
   IconTransitionBottomFilled,
   IconTransitionTopFilled,
-  IconX,
 } from "@tabler/icons-react";
 import classNames from "classnames";
 import Tooltip from "../Rule/Tooltip";
 import deepEqual from "deep-equal";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
 import tableActions from "./TableAction";
 
-function EmbedPublishButton({ rule, embedToken, apiBaseUrl, canPublish }) {
+function EmbedPublishButton({ rule, embedToken, apiBaseUrl, canPublish, onPublish }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [justPublished, setJustPublished] = useState(false);
 
@@ -43,12 +40,12 @@ function EmbedPublishButton({ rule, embedToken, apiBaseUrl, canPublish }) {
         );
       }
 
-      toast.success("Rule published successfully!");
+      // Call onPublish callback with rule data
+      onPublish?.({ rule });
       setJustPublished(true);
       setTimeout(() => setJustPublished(false), 3000);
     } catch (error) {
       console.error("Publish error:", error);
-      toast.error(error.message || "Failed to publish rule");
     } finally {
       setIsPublishing(false);
     }
@@ -79,58 +76,6 @@ function EmbedPublishButton({ rule, embedToken, apiBaseUrl, canPublish }) {
   );
 }
 
-const showTestResults = (results, id) => {
-  toast.custom(
-    (t) => (
-      <div
-        className={`${
-          t.visible ? "animate-enter" : "animate-leave"
-        } max-w-md w-full z-[100] bg-white shadow-lg rounded-md pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
-      >
-        <div className="flex-1 w-0">
-          <div className="flex flex-row h-full items-center">
-            <div className="h-full align-middle">
-              <IconListCheck
-                strokeWidth={1.2}
-                className="h-full self-center w-12 p-2 rounded-sm rounded-r-none border-r border-red-800/10 bg-red-100/50 text-red-600/80"
-                aria-hidden="true"
-              />
-            </div>
-            <div className="m-1 -mt-0 flex-1 truncate p-2.5">
-              <div className="flex flex-row w-full justify-between">
-                <p className="text-base w-auto truncate text-red-700">
-                  Failed to publish ({results.failedTests?.length || 0} critical
-                  tests failed)
-                </p>
-              </div>
-              <p className="text-xs text-neutral-500 whitespace-pre-wrap">
-                <ul className="bg-neutral-100 rounded-sm border mt-2 divide-y">
-                  {results.failedTests.map((testName) => (
-                    <li
-                      className="text-xs py-2 pb-1 px-2 truncate"
-                      key={testName}
-                    >
-                      <div className="inline-flex">
-                        <IconX className="h-4 w-4 mr-1 text-neutral-400" />
-                        {testName}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    {
-      duration: 5000,
-      id: id,
-      position: "bottom-right",
-    }
-  );
-};
-
 export default function RuleEditorNavbar({
   rule,
   selectedRows,
@@ -140,21 +85,13 @@ export default function RuleEditorNavbar({
   canPublish: canPublishProp = false,
   embedToken = null,
   apiBaseUrl = null,
+  onPublish = null,
 }) {
   const [visibleDropdown, setVisibleDropdown] = useState(null);
   const [visibleHelpDropdown, setVisibleHelpDropdown] = useState(null);
-  const [showDeployModal, setShowDeployModal] = useState(false);
-  const [showNameEditor, setShowNameEditor] = useState(false);
   const [canPublish, setCanPublish] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [justPublished, setJustPublished] = useState(false);
-  const [isFirstPublish, setIsFirstPublish] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [redoAvailable, setRedoAvailable] = useState(false);
-  const [ruleSettings, setRuleSettings] = useState(rule.settings || {});
-  const [draftRequiresApproval, setDraftRequiresApproval] = useState(false);
-  const [canEditPublication, setCanEditPublication] = useState(false);
-  const [isApprover, setIsApprover] = useState(false);
 
   const { isUndoAvailable, isRedoAvailable } = tableActions;
   useEffect(() => {
@@ -164,10 +101,6 @@ export default function RuleEditorNavbar({
     setRedoAvailable(isRedoAvailable());
   }, [isRedoAvailable()]);
 
-  // First publish celebration is skipped in embed mode
-  useEffect(() => {
-    setIsFirstPublish(false);
-  }, []);
   useEffect(() => {
     if (rule.conditions?.length && rule.conditions.length < 1000) {
       setCanPublish(
@@ -178,40 +111,9 @@ export default function RuleEditorNavbar({
           !rule.published
       );
     } else {
-      // if the rule is too larg
       setCanPublish(true);
     }
-
-    // In embed mode, permission is based on token permissions
-    const canPublishRule = !!canPublish;
-    const isApproverUser = false; // Approvals not supported in embed mode
-
-    if (isApproverUser || (canPublishRule && !ruleSettings.requiresApproval)) {
-      setCanEditPublication(true);
-      setIsApprover(isApproverUser);
-    } else {
-      setIsApprover(false);
-      setDraftRequiresApproval(
-        ruleSettings.requiresApproval && ruleSettings.approver
-      );
-      setCanEditPublication(false);
-    }
-  }, [rule, showDeployModal]);
-
-  const publishRule = async () => {
-    // Publishing is handled by EmbedPublishButton in embed mode
-    setIsPublishing(true);
-    setTimeout(async () => {
-      await sendAction("publishRule", { score: null });
-      setIsPublishing(false);
-      setJustPublished(true);
-      setCanPublish(false);
-      setTimeout(() => setJustPublished(false), 2000);
-      if (isFirstPublish) {
-        setIsFirstPublish(false);
-      }
-    }, 1000);
-  };
+  }, [rule]);
 
   const canEdit = editMode !== "none";
 
@@ -219,16 +121,12 @@ export default function RuleEditorNavbar({
     <header className="bg-editorBlack h-12 min-h-[47px] flex-shrink-0 z-30 grid grid-rows-1 text-white select-none border-b border-editorBorderGray grid-cols-2">
       <div className="inline-block">
         <div className="inline-flex self-center align-middle h-full items-center">
-          {/* Back button hidden in embed mode */}
-          {(visibleDropdown !== null ||
-            visibleHelpDropdown ||
-            showNameEditor) && (
+          {(visibleDropdown !== null || visibleHelpDropdown) && (
             <div
               className="bg-transparent absolute inset-0 w-screen h-screen z-40"
               onClick={() => {
                 setVisibleDropdown(null);
                 setVisibleHelpDropdown(null);
-                setShowNameEditor(false);
               }}
             />
           )}
@@ -360,6 +258,7 @@ export default function RuleEditorNavbar({
               embedToken={embedToken}
               apiBaseUrl={apiBaseUrl}
               canPublish={canPublish}
+              onPublish={onPublish}
             />
           )}
         </div>

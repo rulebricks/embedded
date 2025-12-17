@@ -501,7 +501,6 @@ function EditPopover({
 }
 
 export default function RequestCell({
-  _idx,
   type,
   cellData,
   rowSettings,
@@ -513,7 +512,6 @@ export default function RequestCell({
   globalValues,
   requestSchema,
   readOnly = false,
-  _lockedSchema,
   isPinned,
 }) {
   const { operators: types } = useOperators();
