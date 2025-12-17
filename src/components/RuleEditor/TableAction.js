@@ -1,10 +1,10 @@
 import { nanoid } from "nanoid";
-import * as randomColorLib from "randomcolor";
+import randomColorLib from "random-color";
 import { processValue } from "./TypeEditor";
 import { getColumnSchema, mergeSchemas } from "./util/models";
 import { setPath } from "./util/util";
 
-const randomColor = randomColorLib.default || randomColorLib;
+const randomColor = () => randomColorLib().hexString();
 const structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 
 function safeUpdatedBy(user) {

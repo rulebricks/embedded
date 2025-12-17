@@ -21,3 +21,17 @@ export function mergeSchemas(schema1, schema2) {
   return merged;
 }
 
+/**
+ * Determines the type of a value for the JSON editor
+ */
+export function getValueType(value) {
+  if (value === null || value === undefined) return "string";
+  if (Array.isArray(value)) return "list";
+  if (value instanceof Date) return "date";
+  const type = typeof value;
+  if (type === "object") return "object";
+  if (type === "number") return "number";
+  if (type === "boolean") return "boolean";
+  return "string";
+}
+

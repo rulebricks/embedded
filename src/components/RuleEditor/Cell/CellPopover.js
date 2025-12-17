@@ -4,11 +4,6 @@ import { useState } from "react";
 import { usePopper } from "react-popper";
 import { createPortal } from "react-dom";
 
-// Stub fonts for embed mode
-const archivo = { variable: "--font-archivo" };
-const sourceCodePro = { variable: "--font-source-code-pro" };
-const jetbrainsMono = { variable: "--font-jetbrains-mono" };
-
 export default function CellPopover({
   referenceElement,
   accept,
@@ -24,7 +19,7 @@ export default function CellPopover({
   });
 
   // Ensure popovers are always above the data grid (react-data-grid creates stacking contexts)
-  const popoverZIndex = 999999;
+  const popoverZIndex = 100;
 
   const portalTarget =
     typeof document !== "undefined"
@@ -38,9 +33,7 @@ export default function CellPopover({
       style={{ ...styles.popper, minWidth: "24em", zIndex: popoverZIndex }}
       {...attributes.popper}
       className={classNames(
-        "cell-popover bg-white rounded-sm border border-neutral-300 shadow-md p-3 flex flex-col",
-        isPinned &&
-          `font-sans ${archivo.variable} ${jetbrainsMono.variable} ${sourceCodePro.variable}`
+        "font-sans cell-popover bg-white rounded-sm border border-neutral-300 shadow-md p-3 flex flex-col"
       )}
     >
       {children}

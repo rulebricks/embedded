@@ -68,7 +68,7 @@ export function NumberEditor({
 export function BooleanEditor({ value, setValue, disabled, target }) {
   return (
     <Select
-      className="text-sm rounded-sm"
+      className="text-sm rounded-sm font-sans"
       menuPortalTarget={target}
       classNames={{
         control: (_base) => "min-h-10 rounded-sm",
@@ -260,6 +260,8 @@ export default function TypeEditor({
   sampleResponse,
   globalValues,
   maxWidth = "max-w-sm",
+  showSimpleModeToggle = false,
+  enableFunctions = false,
 }) {
   const Editor = Editors[type];
   return (
@@ -268,12 +270,15 @@ export default function TypeEditor({
       setValue={setValue}
       valid={!!valid}
       disabled={!!disabled}
+      readOnly={!!disabled}
       placeholder={placeholder}
       className={className}
       sampleRequest={sampleRequest}
       sampleResponse={sampleResponse}
       globalValues={globalValues}
       maxWidth={maxWidth}
+      showSimpleModeToggle={showSimpleModeToggle}
+      enableFunctions={enableFunctions}
     />
   );
 }

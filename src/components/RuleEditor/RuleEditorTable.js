@@ -712,8 +712,8 @@ export default function RuleEditorTable({
     <>
       {/* Meta tag skipped in embed mode */}
       <div
-        className="flex flex-col text-editorBlack h-full overflow-hidden relative"
-        data-embed-container="true"
+        className="flex flex-col text-editorBlack overflow-hidden relative"
+        style={{ height: "100%", maxHeight: "100%" }}
       >
         {/* Hide navbar when showControls=false or in read-only mode (editMode='none') */}
         {showControls && editMode !== "none" && (
@@ -953,7 +953,7 @@ export default function RuleEditorTable({
                       placeholder="Search all conditions..."
                       value={searchRows}
                       onChange={(e) => setSearchRows(e.target.value)}
-                      className="w-48 h-7 -ml-1 self-center bg-transparent text-sm placeholder:text-neutral-400 rounded-r-md rounded-l-none border-neutral-300 border border-l-0 text-neutral-800 focus:outline-none focus:ring-0 focus:border-neutral-300 pr-7"
+                      className="w-48 h-7 -ml-1 pl-2 self-center bg-transparent text-sm placeholder:text-neutral-400 rounded-r-md rounded-l-none border-neutral-300 border border-l-0 text-neutral-800 focus:outline-none focus:ring-0 focus:border-neutral-300 pr-7"
                     />
                     {searchRows && (
                       <button

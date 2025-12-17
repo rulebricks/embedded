@@ -53,6 +53,9 @@ export default [
         inject: true, // Auto-inject CSS into JS bundle - no manual import needed
         minimize: true,
         modules: false,
+        config: {
+          path: "./postcss.config.js",
+        },
       }),
     ],
     external: [

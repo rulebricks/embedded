@@ -8,7 +8,6 @@ import {
   DEFAULT_OPERATORS_URL,
 } from "./context/OperatorsContext";
 
-// Import styles so Rollup processes and bundles them
 import "./styles.css";
 
 const queryClient = new QueryClient({
@@ -21,7 +20,7 @@ const Rule = React.forwardRef(function Rule(
   {
     embedToken,
     apiBaseUrl,
-    height = 600,
+    height = "600px",
     showFooter = true,
     showControls = true,
     showRowSettings = false,
@@ -40,6 +39,10 @@ const Rule = React.forwardRef(function Rule(
 ) {
   // Use forwardedRef if provided (for next/dynamic), otherwise use regular ref
   const effectiveRef = forwardedRef || ref;
+
+  // Normalize height to a valid CSS value
+  const normalizedHeight = typeof height === "number" ? `${height}px` : height;
+
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [ruleData, setRuleData] = React.useState(null);
@@ -208,14 +211,11 @@ const Rule = React.forwardRef(function Rule(
   if (loading) {
     return (
       <div
-        style={{ height }}
-        className="flex items-center justify-center bg-gray-50 rounded-lg"
+        style={{ height: normalizedHeight }}
+        className="rulebricks-embed flex items-center justify-center bg-gray-50 rounded-lg"
       >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">
-            Loading decision table...
-          </span>
+        <div className="font-sans flex flex-col items-center gap-3 h-full justify-center">
+          <div className="w-8 h-8 border-4 border-zinc-600 border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -224,10 +224,10 @@ const Rule = React.forwardRef(function Rule(
   if (error) {
     return (
       <div
-        style={{ height }}
-        className="flex items-center justify-center bg-red-50 rounded-lg"
+        style={{ height: normalizedHeight }}
+        className="rulebricks-embed flex items-center justify-center bg-red-50 rounded-lg"
       >
-        <div className="text-center max-w-md p-6">
+        <div className="font-sans text-center max-w-md p-6 h-full justify-center">
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <svg
               className="w-6 h-6 text-red-600"
@@ -255,10 +255,12 @@ const Rule = React.forwardRef(function Rule(
   if (!ruleData) {
     return (
       <div
-        style={{ height }}
-        className="flex items-center justify-center bg-gray-50 rounded-lg"
+        style={{ height: normalizedHeight }}
+        className="rulebricks-embed flex items-center justify-center bg-gray-50 rounded-lg"
       >
-        <p className="text-gray-500">No rule data available</p>
+        <p className="font-sans text-gray-500 h-full justify-center text-center">
+          No rule data available
+        </p>
       </div>
     );
   }
@@ -273,21 +275,18 @@ const Rule = React.forwardRef(function Rule(
         operatorsUrl={operatorsUrl}
         loadingComponent={
           <div
-            style={{ height }}
-            className="flex items-center justify-center bg-gray-50 rounded-lg"
+            style={{ height: normalizedHeight }}
+            className="rulebricks-embed flex items-center justify-center bg-gray-50 rounded-lg"
           >
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-gray-500">
-                Loading operators...
-              </span>
+            <div className="font-sans flex flex-col items-center gap-3 h-full justify-center">
+              <div className="w-8 h-8 border-4 border-zinc-600 border-t-transparent rounded-full animate-spin" />
             </div>
           </div>
         }
         errorComponent={
           <div
-            style={{ height }}
-            className="flex items-center justify-center bg-red-50 rounded-lg"
+            style={{ height: normalizedHeight }}
+            className="rulebricks-embed flex items-center justify-center bg-red-50 rounded-lg"
           >
             <div className="text-center max-w-md p-6">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
@@ -317,11 +316,18 @@ const Rule = React.forwardRef(function Rule(
       >
         <Toaster position="top-right" />
         <div
-          style={{ height }}
-          className="relative overflow-visible rounded-lg flex flex-col rulebricks-embed"
+          style={{
+            height: normalizedHeight,
+            maxHeight: normalizedHeight,
+            overflow: "hidden",
+          }}
+          className="relative rounded-lg flex flex-col rulebricks-embed"
           data-embed-container="true"
         >
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div
+            className="font-sans flex-1 min-h-0 overflow-hidden "
+            style={{ height: "100%" }}
+          >
             <RuleEditorTable
               ruleOverride={ruleData}
               globalValuesOverride={globalValues}

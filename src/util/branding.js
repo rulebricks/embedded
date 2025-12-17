@@ -174,7 +174,6 @@ export const getGoogleFontCss = (fontName) => {
       --rb-font-family: "${fontName}", ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
     [data-embed-container="true"],
-    [data-embed-container="true"] *,
     [data-embed-container="true"] .font-sans,
     [data-embed-container="true"] input,
     [data-embed-container="true"] button,

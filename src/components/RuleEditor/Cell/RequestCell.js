@@ -35,10 +35,21 @@ function EditPopover({
   const selectedOpDef = allOps[selectedValue] || { args: [] };
   const isListType = (argType) => argType === "list";
 
+  const defaultTypes = {
+    boolean: () => true,
+    generic: () => null,
+    number: () => 0,
+    string: () => "",
+    date: () => moment().format(),
+    function: () => "",
+    object: () => {},
+    list: () => [],
+    any: null,
+  };
+
   const [args, setArgs] = useState(() => {
     const arr =
-      initArgs ||
-      selectedOpDef.args.map((x) => types[x.type]?.default?.() ?? "");
+      initArgs || selectedOpDef.args.map((x) => defaultTypes[x.type]?.() ?? "");
     return arr.map((x, idx) => unprocessValue(selectedOpDef.args[idx].type, x));
   });
 
@@ -53,6 +64,7 @@ function EditPopover({
         } catch (_e) {}
         return (
           (Array.isArray(arg) &&
+            arg.length > 0 &&
             arg.every((item) => isGlobalValue(item, argDef.type))) ||
           (typeof arg === "object" && isGlobalValue(arg, argDef.type))
         );
@@ -296,7 +308,7 @@ function EditPopover({
           onChange={(v) => {
             setSelectedValue(v.value);
             const newArgs = allOps[v.value].args.map((x) =>
-              unprocessValue(x.type, types[x.type]?.default?.() ?? "")
+              unprocessValue(x.type, defaultTypes[x.type]?.() ?? "")
             );
             setArgs(newArgs);
             setTimeout(() => {
@@ -463,7 +475,7 @@ function EditPopover({
                             if (isGlobalMode[idx]) {
                               newArgs[idx] = unprocessValue(
                                 argDef.type,
-                                types[argDef.type]?.default?.() ?? ""
+                                defaultTypes[argDef.type]?.() ?? ""
                               );
                               newIsGlobalMode[idx] = false;
                             } else {

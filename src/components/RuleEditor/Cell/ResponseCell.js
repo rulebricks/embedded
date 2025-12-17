@@ -30,8 +30,18 @@ export function EditPopover({
     filterGlobalValues,
     defaultGlobalValue,
   } = useGlobalValues(globalValues);
-
   const isListType = type === "list";
+  const defaultTypes = {
+    boolean: () => true,
+    generic: () => null,
+    number: () => 0,
+    string: () => "",
+    date: () => moment().format(),
+    function: () => "",
+    object: () => {},
+    list: () => [],
+    any: null,
+  };
 
   const availableGlobalValues = isListType
     ? globalValues
@@ -45,7 +55,7 @@ export function EditPopover({
 
   // Parse and prepare the initial value
   const prepareInitialValue = () => {
-    if (initValue === null) return types[type]?.default?.() ?? "";
+    if (initValue === null) return defaultTypes[type]?.() ?? "";
     // Handle array of values specially
     if (Array.isArray(initValue) && isListType) {
       // Check if all items are global values
@@ -191,7 +201,7 @@ export function EditPopover({
         } else {
           // Empty selection
           setValue(
-            isGlobalValue(value, type) ? [] : types[type]?.default?.() ?? ""
+            isGlobalValue(value, type) ? [] : defaultTypes[type]?.() ?? ""
           );
           setSelectValue([]);
           // Keep global mode unchanged on empty selection
@@ -213,9 +223,7 @@ export function EditPopover({
       } else {
         // Single non-global value or empty selection
         setValue(
-          v
-            ? [parseComplexValue(v.value, type)]
-            : types[type]?.default?.() ?? ""
+          v ? [parseComplexValue(v.value, type)] : defaultTypes[type]?.() ?? ""
         );
         setSelectValue(v ? [v] : null);
         setIsGlobalMode(false);
@@ -223,7 +231,7 @@ export function EditPopover({
     } else {
       // Non-list type, always single select
       setValue(
-        v ? parseComplexValue(v.value, type) : types[type]?.default?.() ?? ""
+        v ? parseComplexValue(v.value, type) : defaultTypes[type]?.() ?? ""
       );
       setSelectValue(v);
       // Set global mode based on whether value is a global value
@@ -342,7 +350,7 @@ export function EditPopover({
                   if (isGlobalMode) {
                     // Switch to manual mode
                     setValue(
-                      unprocessValue(type, types[type]?.default?.() ?? "")
+                      unprocessValue(type, defaultTypes[type]?.() ?? "")
                     );
                     setSelectValue(null);
                     setIsGlobalMode(false);
