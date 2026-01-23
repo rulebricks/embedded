@@ -230,6 +230,7 @@
 
   input {
     --tw-ring-shadow: 0 0 #000 !important;
+    background: white;
   }
 
   .json5-editor-wrapper {
@@ -340,7 +341,7 @@
   }
 
   .date-input > .rdtPicker {
-    position: relative !important;
+    position: absolute !important;
     border-radius: var(--border-radius) !important;
     box-shadow: none !important;
     line-height: 2.6;

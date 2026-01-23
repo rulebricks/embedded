@@ -260,7 +260,7 @@ const Rule = React.forwardRef(function Rule(
             maxHeight: normalizedHeight,
             overflow: "hidden",
           }}
-          className="relative rounded-lg flex flex-col rulebricks-embed"
+          className="relative flex flex-col rulebricks-embed"
           data-embed-container="true"
         >
           {/* Loading state */}

@@ -3,7 +3,7 @@ import json5 from "json5";
 import moment from "moment-timezone";
 import * as ReactDatetime from "react-datetime";
 import Select from "react-select";
-
+import { useMemo } from "react"
 const Datetime = ReactDatetime.default || ReactDatetime;
 import CodeEditor from "./Inputs/CodeEditor";
 import JsonEditor, {
@@ -89,26 +89,31 @@ export function BooleanEditor({ value, setValue, disabled, target }) {
 }
 
 export function DateEditor({ value, setValue, disabled }) {
-  if (typeof value === "number") {
-    if (value.toString().length <= 10) {
-      value = moment.unix(value).toISOString();
-    } else {
-      value = moment(value).toISOString();
+  // Memoize the moment conversion to prevent new objects on every render
+  const momentValue = useMemo(() => {
+    if (typeof value === "number") {
+      if (value.toString().length <= 10) {
+        return moment.unix(value).utc()
+      } else {
+        return moment(value).utc()
+      }
     }
-  }
+    return moment(value).utc()
+  }, [value])
+
   // set dateformat to accomodate 2025-04-25T00:00:00-07:00
   return (
     <Datetime
       dateFormat={"YYYY-MM-DD"}
       timeFormat={"HH:mm:ss.000 z"}
-      value={moment(value).utc()}
+      value={momentValue}
       displayTimeZone={moment.tz.guess()}
       onChange={(newValue) => setValue(moment(newValue).utc())}
       className={`${
         disabled && "pointer-events-none text-gray-400 bg-gray-100"
       } rounded-sm date-input`}
     />
-  );
+  )
 }
 
 export function FunctionEditor({
