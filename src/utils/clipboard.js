@@ -7,17 +7,19 @@ import json5 from "json5";
 export function parseExternalClipboardData(clipboardText) {
   if (!clipboardText) return null;
 
-  // Split by newlines to get rows
-  const rows = clipboardText.split(/\r?\n/).filter((row) => row.trim() !== "");
+  // Strip a single trailing newline (clipboard text typically ends with one)
+  // so we do not introduce a spurious final blank row, but preserve any
+  // interior blank rows so callers can treat them as "any".
+  const text = clipboardText.replace(/\r?\n$/, "");
+  const rows = text.split(/\r?\n/);
 
   if (rows.length === 0) return null;
 
-  // Parse each row - assuming tab-separated values from Excel
+  // Parse each row - assuming tab-separated values from Excel.
+  // Single-column paste: take the first cell of each row.
   const parsedRows = rows.map((row) => {
-    // Excel typically uses tabs to separate cells
     const cells = row.split("\t");
-    // Return the first cell value (single column paste)
-    return cells[0];
+    return cells[0] ?? "";
   });
 
   return parsedRows;
@@ -137,6 +139,45 @@ export function prepareRequestCellPasteData(
   const startCellData = conditions[startRow]?.request?.[column];
   if (!startCellData) return updates;
 
+  // Boolean columns have only zero-arg operators ("is true", "is false", etc.),
+  // so pasted values must map to an operator rather than flow through args.
+  if (columnSchema.type === "boolean") {
+    values.forEach((value, index) => {
+      const rowIdx = startRow + index;
+      if (rowIdx >= conditions.length) return; // Don't create new rows
+
+      const isBlank =
+        value === null || value === undefined || value.toString().trim() === "";
+      if (isBlank) {
+        updates.push({
+          rowIdx,
+          column,
+          section: "request",
+          data: { op: "any", args: [] },
+        });
+        return;
+      }
+
+      const converted = convertValueForType(value, "boolean");
+      if (converted === true) {
+        updates.push({
+          rowIdx,
+          column,
+          section: "request",
+          data: { op: "is true", args: [] },
+        });
+      } else if (converted === false) {
+        updates.push({
+          rowIdx,
+          column,
+          section: "request",
+          data: { op: "is false", args: [] },
+        });
+      }
+    });
+    return updates;
+  }
+
   const operator = startCellData.op;
   const operatorDef = operators[columnSchema.type]?.operators?.[operator];
 
@@ -151,6 +192,23 @@ export function prepareRequestCellPasteData(
   values.forEach((value, index) => {
     const rowIdx = startRow + index;
     if (rowIdx >= conditions.length) return; // Don't create new rows
+
+    // Blank cells in the pasted column should clear the cell to "any"
+    // rather than being silently dropped (which would collapse values upward).
+    const isBlank =
+      value === null || value === undefined || value.toString().trim() === "";
+    if (isBlank) {
+      updates.push({
+        rowIdx,
+        column,
+        section: "request",
+        data: {
+          op: "any",
+          args: [],
+        },
+      });
+      return;
+    }
 
     const convertedValue = convertValueForType(value, argType);
     if (convertedValue !== null) {
@@ -212,6 +270,22 @@ export function prepareResponseCellPasteData(
     const rowIdx = startRow + index;
     if (rowIdx >= conditions.length) return; // Don't create new rows
 
+    // Blank cells in the pasted column should clear the response cell
+    // rather than being silently dropped (which would collapse values upward).
+    const isBlank =
+      value === null || value === undefined || value.toString().trim() === "";
+    if (isBlank) {
+      updates.push({
+        rowIdx,
+        column,
+        section: "response",
+        data: {
+          value: null,
+        },
+      });
+      return;
+    }
+
     const convertedValue = convertValueForType(value, columnType);
     if (convertedValue !== null) {
       // For response columns, the value should be stored directly
@@ -270,7 +344,7 @@ export function applyExternalPasteUpdates(
   updateRule.mutate({
     conditions: newConditions,
     updatedAt: new Date().toISOString(),
-    updatedBy: user.name || user.email,
+    updatedBy: user?.name || user?.email || "Embedded User",
   });
 }
 

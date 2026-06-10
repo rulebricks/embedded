@@ -34,6 +34,21 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import Modal from "../../ui/Modal";
 import { getValueType } from "../../../utils/typeValidation";
 
+// Returns the order ECMAScript's OwnPropertyKeys would produce for a plain object
+// built by inserting `keys` in the given order: non-negative integer-indexed keys
+// first in numeric order, followed by remaining keys in insertion order.
+const INT_KEY_RE = /^(?:0|[1-9]\d*)$/;
+function jsEnumerateOrder(keys) {
+  const intKeys = [];
+  const strKeys = [];
+  for (const k of keys) {
+    if (INT_KEY_RE.test(k)) intKeys.push(k);
+    else strKeys.push(k);
+  }
+  intKeys.sort((a, b) => Number(a) - Number(b));
+  return [...intKeys, ...strKeys];
+}
+
 // Field name input component that prevents re-renders during editing
 const FieldNameInput = ({
   initialValue,
@@ -388,6 +403,63 @@ function SimpleObjectEditor({
   const [expanded, setExpanded] = useState({});
   const { isDragging, currentDragParentPath } = useContext(DragContext);
 
+  // Track a stable row id per field key to avoid focus loss when keys are renamed.
+  // Also track an explicit render order so enumeration order (especially integer-like keys)
+  // can't reshuffle rows while typing.
+  const idMapRef = useRef(new Map());
+  const idCounterRef = useRef(1);
+  const [keyOrder, setKeyOrder] = useState(() =>
+    data && !Array.isArray(data) ? Object.keys(data) : []
+  );
+
+  useEffect(() => {
+    if (!data || Array.isArray(data)) return;
+
+    setKeyOrder((prevOrder) => {
+      const dataKeys = Object.keys(data);
+      const keysInData = new Set(dataKeys);
+      const prevSafe = Array.isArray(prevOrder) ? prevOrder : [];
+
+      // Clean up stable ids for keys that no longer exist in data.
+      const map = idMapRef.current;
+      for (const existingKey of Array.from(map.keys())) {
+        if (!keysInData.has(existingKey)) map.delete(existingKey);
+      }
+
+      // Same key-set? Decide between keeping our order (round-trip artifact)
+      // or adopting data order (genuine external reorder).
+      const sameKeySet =
+        prevSafe.length === dataKeys.length &&
+        prevSafe.every((k) => keysInData.has(k));
+
+      if (sameKeySet) {
+        // Already in same order -> nothing to change.
+        const sameOrder = prevSafe.every((k, i) => k === dataKeys[i]);
+        if (sameOrder) return prevOrder;
+
+        // If data order is exactly what JS enumeration would produce from our
+        // current order (integer-like keys sorted first, then insertion order),
+        // this is just a round-trip through a plain object. Keep our order.
+        const expected = jsEnumerateOrder(prevSafe);
+        const matchesRoundTrip =
+          expected.length === dataKeys.length &&
+          expected.every((k, i) => k === dataKeys[i]);
+
+        if (matchesRoundTrip) return prevOrder;
+
+        // Genuine external reorder (e.g., drag in the maximized modal). Adopt it.
+        return dataKeys;
+      }
+
+      // Key-set differs: add/remove/rename. Preserve existing order, append new keys.
+      const nextOrder = prevSafe.filter((k) => keysInData.has(k));
+      for (const k of dataKeys) {
+        if (!nextOrder.includes(k)) nextOrder.push(k);
+      }
+      return nextOrder;
+    });
+  }, [data]);
+
   const isValidDropArea = isDragging && currentDragParentPath === parentPath;
 
   const toggleExpand = (key) => {
@@ -400,23 +472,24 @@ function SimpleObjectEditor({
   const moveField = (dragIndex, hoverIndex) => {
     if (path?.readOnly) return;
 
-    const fieldOrder = Object.keys(data);
     if (
       dragIndex < 0 ||
-      dragIndex >= fieldOrder.length ||
+      dragIndex >= keyOrder.length ||
       hoverIndex < 0 ||
-      hoverIndex >= fieldOrder.length
+      hoverIndex >= keyOrder.length
     ) {
       return;
     }
 
-    const dragKey = fieldOrder[dragIndex];
-    const newOrder = [...fieldOrder];
-    newOrder.splice(dragIndex, 1);
-    newOrder.splice(hoverIndex, 0, dragKey);
+    const dragKey = keyOrder[dragIndex];
+    const nextOrder = [...keyOrder];
+    nextOrder.splice(dragIndex, 1);
+    nextOrder.splice(hoverIndex, 0, dragKey);
+
+    setKeyOrder(nextOrder);
 
     const newData = {};
-    newOrder.forEach((key) => {
+    nextOrder.forEach((key) => {
       newData[key] = data[key];
     });
 
@@ -445,35 +518,41 @@ function SimpleObjectEditor({
   };
 
   const updateValue = (key, newValue, valueType = null) => {
-    const newData = { ...data };
+    let updatedValue = newValue;
+
     if (valueType) {
       switch (valueType) {
         case "string":
-          newData[key] = typeof newValue === "string" ? newValue : "";
+          updatedValue = typeof newValue === "string" ? newValue : "";
           break;
         case "number":
-          newData[key] = typeof newValue === "number" ? newValue : 0;
+          updatedValue = typeof newValue === "number" ? newValue : 0;
           break;
         case "boolean":
-          newData[key] = newValue === "true" || newValue === true;
+          updatedValue = newValue === "true" || newValue === true;
           break;
         case "date":
-          newData[key] =
+          updatedValue =
             typeof newValue === "string" ? newValue : new Date().toISOString();
           break;
         case "list":
-          newData[key] = [];
+          updatedValue = [];
           break;
         case "object":
-          newData[key] = {};
+          updatedValue = {};
           break;
         case "function":
-          newData[key] = "() => {}";
+          updatedValue = "() => {}";
           break;
       }
     } else {
-      newData[key] = newValue;
+      updatedValue = newValue;
     }
+
+    const newData = {};
+    keyOrder.forEach((k) => {
+      newData[k] = k === key ? updatedValue : data[k];
+    });
     onChange(newData);
   };
 
@@ -488,17 +567,25 @@ function SimpleObjectEditor({
   };
 
   const addField = () => {
-    const fieldNumbers = Object.keys(data)
+    const fieldNumbers = keyOrder
       .filter((key) => key.match(/^field\d+$/))
       .map((key) => Number.parseInt(key.replace("field", ""), 10));
 
     const nextNumber =
       fieldNumbers.length > 0 ? Math.max(...fieldNumbers) + 1 : 0;
     const newKey = `field${nextNumber}`;
-    const newData = {
-      ...data,
-      [newKey]: "",
-    };
+
+    const nextOrder = [...keyOrder, newKey];
+    setKeyOrder(nextOrder);
+    if (!idMapRef.current.has(newKey)) {
+      idMapRef.current.set(newKey, idCounterRef.current++);
+    }
+
+    const newData = {};
+    nextOrder.forEach((k) => {
+      if (k === newKey) newData[k] = "";
+      else newData[k] = data[k];
+    });
     onChange(newData);
 
     if (Object.keys(data).length === 0) {
@@ -513,8 +600,14 @@ function SimpleObjectEditor({
   };
 
   const removeField = (key) => {
-    const newData = { ...data };
-    delete newData[key];
+    const nextOrder = keyOrder.filter((k) => k !== key);
+    setKeyOrder(nextOrder);
+    idMapRef.current.delete(key);
+
+    const newData = {};
+    nextOrder.forEach((k) => {
+      newData[k] = data[k];
+    });
     onChange(newData);
   };
 
@@ -522,25 +615,38 @@ function SimpleObjectEditor({
     if (oldKey === newKey) return;
     if (newKey.trim() === "" || data[newKey] !== undefined) return;
 
-    const keyOrder = Object.keys(data);
-    const keyIndex = keyOrder.indexOf(oldKey);
-    if (keyIndex !== -1) {
-      keyOrder[keyIndex] = newKey;
+    // Transfer stable id so the input row keeps identity across the rename.
+    const oldId = idMapRef.current.get(oldKey);
+    if (oldId !== undefined) {
+      idMapRef.current.set(newKey, oldId);
+      idMapRef.current.delete(oldKey);
+    } else if (!idMapRef.current.has(newKey)) {
+      idMapRef.current.set(newKey, idCounterRef.current++);
     }
 
-    const newData = {};
-    keyOrder.forEach((key) => {
-      if (key === newKey) {
-        newData[key] = data[oldKey];
-      } else {
-        newData[key] = data[key];
-      }
-    });
+    // Replace in the explicit ordering.
+    const nextOrder = keyOrder.map((k) => (k === oldKey ? newKey : k));
+    setKeyOrder(nextOrder);
 
+    const newData = {};
+    nextOrder.forEach((k) => {
+      if (k === newKey) newData[k] = data[oldKey];
+      else newData[k] = data[k];
+    });
     onChange(newData);
   };
 
-  const isEmpty = !Array.isArray(data) && Object.keys(data).length === 0;
+  const displayKeys = keyOrder;
+  const displayIsEmpty = !Array.isArray(data) && displayKeys.length === 0;
+
+  // Ensure every currently-visible key has a stable id BEFORE we render, so React
+  // keys on DraggableField don't flip between the initial render and the post-effect
+  // render (which caused every row to remount and replay the enter animation).
+  for (const k of displayKeys) {
+    if (!idMapRef.current.has(k)) {
+      idMapRef.current.set(k, idCounterRef.current++);
+    }
+  }
 
   return (
     <div
@@ -555,12 +661,13 @@ function SimpleObjectEditor({
       )}
     >
       <AnimatePresence initial={{ opacity: 0 }}>
-        {!isEmpty &&
-          Object.entries(data).map(([key, value], index) => {
+        {!displayIsEmpty &&
+          displayKeys.map((key, index) => {
+            const value = data[key];
             const valueType = getValueType(value);
             return (
               <DraggableField
-                key={`field-${index}`}
+                key={idMapRef.current.get(key)}
                 id={key}
                 index={index}
                 moveField={moveField}
@@ -646,12 +753,12 @@ function SimpleObjectEditor({
             );
           })}
       </AnimatePresence>
-      {isEmpty && !path?.readOnly && (
+      {displayIsEmpty && !path?.readOnly && (
         <div className="text-center text-neutral-400 text-xs py-4 pb-2 px-2">
           This object is empty. Add a field to get started.
         </div>
       )}
-      {isEmpty && path?.readOnly && (
+      {displayIsEmpty && path?.readOnly && (
         <div className="text-center text-neutral-400 text-xs py-4 px-2">
           This object is empty.
         </div>
@@ -719,9 +826,9 @@ export default function JsonEditor({
     }
   }, [value, simpleMode]);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     try {
-      navigator.clipboard.writeText(
+      await navigator.clipboard.writeText(
         JSON.stringify(JSON5.parse(value), null, 2)
       );
       setJustCopied(true);

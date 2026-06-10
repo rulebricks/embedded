@@ -13,7 +13,9 @@ export default function RequestColumn(
   readOnly,
   lockedSchema,
   isPinned = false,
-  sectionLabel = null
+  sectionLabel = null,
+  showSectionHeader = colIdx === 0,
+  sectionHeaderMetrics = {}
 ) {
   return {
     key: `request.${key}`,
@@ -32,6 +34,9 @@ export default function RequestColumn(
     lockedSchema,
     isPinned,
     frozen: isPinned,
+    showSectionHeader,
+    sectionHeaderWidth: sectionHeaderMetrics.width,
+    sectionLabelLeft: sectionHeaderMetrics.labelLeft,
     headerRenderer: RequestHeaderCell,
     formatter: ({ row, isCellSelected }) => {
       return (

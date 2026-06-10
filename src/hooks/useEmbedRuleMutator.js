@@ -86,26 +86,36 @@ export function useEmbedRuleMutator({
  * @param {string} options.embedToken - The embed token for authentication
  * @param {string} options.apiBaseUrl - The base URL for API calls
  * @param {string} options.ruleId - The ID of the rule being published
+ * @param {Function} options.onRuleChange - Optional callback when rule changes
  * @param {Function} options.onSuccess - Callback on successful publish
  * @param {Function} options.onError - Callback on publish error
- * @returns {Object} - A mutation object for publishing
+ * @returns {Object} - A mutation object for publishing. `mutate` accepts an
+ *   optional `{ versionNote }` payload which is stored on the published
+ *   version's history entry.
  */
 export function useEmbedPublishMutator({
   embedToken,
   apiBaseUrl,
   ruleId,
+  onRuleChange,
   onSuccess,
   onError,
 }) {
+  const queryClient = useQueryClient();
+  const queryKey = ["embed-rule", { ruleId }];
+
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ versionNote } = {}) => {
       const response = await fetch(`${apiBaseUrl}/api/embed/publish`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Embed-Token": embedToken,
         },
-        body: JSON.stringify({ ruleId }),
+        body: JSON.stringify({
+          ruleId,
+          ...(versionNote ? { versionNote } : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -118,6 +128,16 @@ export function useEmbedPublishMutator({
       return response.json();
     },
     onSuccess: (data) => {
+      // Merge the post-publish rule (published_* snapshots, history,
+      // publishedAt) into the local cache so the publish button's change
+      // detection and the footer status reflect the new published state.
+      if (data?.rule) {
+        const oldData = queryClient.getQueryData(queryKey);
+        if (oldData) {
+          queryClient.setQueryData(queryKey, { ...oldData, ...data.rule });
+        }
+        onRuleChange?.(data.rule);
+      }
       onSuccess?.(data);
     },
     onError: (error) => {

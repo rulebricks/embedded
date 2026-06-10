@@ -228,6 +228,16 @@
     padding: 0;
   }
 
+  /* Frozen (pinned) cells need opaque backgrounds so content doesn't
+     show through while horizontally scrolling */
+  .rdg-cell-frozen {
+    background-color: var(--rdg-background-color);
+  }
+
+  .rdg-cell-frozen[role="columnheader"] {
+    background-color: var(--rdg-header-background-color);
+  }
+
   input {
     --tw-ring-shadow: 0 0 #000 !important;
     background: white;
@@ -242,6 +252,7 @@
     grid-template-columns: 165px !important;
     grid-auto-columns: minmax(max-content, auto) !important;
     padding-bottom: 100px;
+    overscroll-behavior: none;
   }
 
   .rdg-demo {

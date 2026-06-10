@@ -3,7 +3,8 @@ import json5 from "json5";
 import moment from "moment-timezone";
 import * as ReactDatetime from "react-datetime";
 import Select from "react-select";
-import { useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 const Datetime = ReactDatetime.default || ReactDatetime;
 import CodeEditor from "./Inputs/CodeEditor";
 import JsonEditor, {
@@ -89,31 +90,120 @@ export function BooleanEditor({ value, setValue, disabled, target }) {
 }
 
 export function DateEditor({ value, setValue, disabled }) {
+  const containerRef = useRef(null);
+  const portalRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
   // Memoize the moment conversion to prevent new objects on every render
   const momentValue = useMemo(() => {
     if (typeof value === "number") {
       if (value.toString().length <= 10) {
-        return moment.unix(value).utc()
+        return moment.unix(value).utc();
       } else {
-        return moment(value).utc()
+        return moment(value).utc();
       }
     }
-    return moment(value).utc()
-  }, [value])
+    return moment(value).utc();
+  }, [value]);
 
-  // set dateformat to accomodate 2025-04-25T00:00:00-07:00
+  const openPicker = useCallback(() => {
+    if (disabled) return;
+    const input = containerRef.current?.querySelector("input");
+    if (!input) return;
+    const rect = input.getBoundingClientRect();
+    setPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+    setIsOpen(true);
+  }, [disabled]);
+
+  const closePicker = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e) => {
+      if (
+        containerRef.current?.contains(e.target) ||
+        portalRef.current?.contains(e.target)
+      )
+        return;
+      setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  // Render the calendar in a fixed-position portal so it is not clipped by
+  // the cell popover. Portal into the embed container (like ui/Modal) so
+  // Tailwind scoping and branding CSS variables still apply.
+  const portalTarget =
+    typeof document !== "undefined"
+      ? document.querySelector('[data-embed-container="true"]') ||
+        document.body
+      : null;
+
   return (
-    <Datetime
-      dateFormat={"YYYY-MM-DD"}
-      timeFormat={"HH:mm:ss.000 z"}
-      value={momentValue}
-      displayTimeZone={moment.tz.guess()}
-      onChange={(newValue) => setValue(moment(newValue).utc())}
-      className={`${
-        disabled && "pointer-events-none text-gray-400 bg-gray-100"
-      } rounded-sm date-input`}
-    />
-  )
+    <div ref={containerRef} className="flex flex-col gap-1">
+      <Datetime
+        dateFormat={"YYYY-MM-DD"}
+        timeFormat={"HH:mm:ss.000 z"}
+        value={momentValue}
+        displayTimeZone={moment.tz.guess()}
+        onChange={(newValue) => setValue(moment(newValue).utc())}
+        open={false}
+        inputProps={{
+          onFocus: openPicker,
+          onClick: openPicker,
+        }}
+        className={`${
+          disabled && "pointer-events-none text-gray-400 bg-gray-100"
+        } rounded-sm date-input max-w-xs`}
+      />
+      {isOpen &&
+        portalTarget &&
+        createPortal(
+          <div
+            ref={portalRef}
+            className="rulebricks-embed"
+            style={{
+              position: "fixed",
+              top: position.top,
+              left: position.left,
+              width: position.width,
+              zIndex: 9999,
+            }}
+          >
+            <div
+              className="date-input font-sans"
+              style={{ lineHeight: 2.6 }}
+            >
+              <Datetime
+                dateFormat={"YYYY-MM-DD"}
+                timeFormat={"HH:mm:ss.000 z"}
+                value={momentValue}
+                displayTimeZone={moment.tz.guess()}
+                onChange={(newValue) => {
+                  setValue(moment(newValue).utc());
+                }}
+                onClose={closePicker}
+                input={false}
+                open={true}
+              />
+            </div>
+          </div>,
+          portalTarget
+        )}
+      <button
+        type="button"
+        onClick={() => setValue(moment().startOf("day"))}
+        disabled={disabled}
+        className="text-xs max-w-xs w-full duration-75 transition-all bg-neutral-200 hover:bg-neutral-100 border py-2 text-neutral-900 hover:text-sky-600 disabled:text-gray-400 text-center"
+      >
+        Current Date
+      </button>
+    </div>
+  );
 }
 
 export function FunctionEditor({
@@ -249,6 +339,9 @@ export function unprocessValue(type, value) {
   }
   if (type === "function") {
     return value?.toString();
+  }
+  if (type === "string" && (value === undefined || value === null)) {
+    return "";
   }
   return value;
 }

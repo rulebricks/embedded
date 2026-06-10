@@ -25,6 +25,7 @@ const Rule = React.forwardRef(function Rule(
     showFooter = true,
     showControls = true,
     showRowSettings = false,
+    publishVersionNotes = false,
     onPublish,
     onError,
     // Dynamic operators URL
@@ -298,6 +299,7 @@ const Rule = React.forwardRef(function Rule(
                 globalValuesOverride={globalValues}
                 editMode={effectiveEditMode}
                 canPublish={canPublish}
+                publishVersionNotes={publishVersionNotes}
                 lockedSchema={lockedSchema}
                 embedToken={embedToken}
                 apiBaseUrl={effectiveBaseUrl}
@@ -308,6 +310,7 @@ const Rule = React.forwardRef(function Rule(
                 showRowSettings={showRowSettings}
                 onRuleChange={handleRuleChange}
                 onPublish={onPublish}
+                onError={onError}
                 requestLabel={requestLabel}
                 responseLabel={responseLabel}
                 testStateProp={testState}

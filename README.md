@@ -91,16 +91,38 @@ It is important to note that most UI customization still needs to be done in the
 
 Your embeds will always inherit these settings, and users will only be able to work with rules that they have permission to view/edit, and in ways their role allows.
 
-| Prop              | Type       | Default                  | Description                   |
-| ----------------- | ---------- | ------------------------ | ----------------------------- |
-| `embedToken`      | `string`   | required                 | Token from your backend       |
-| `apiBaseUrl`      | `string`   | `window.location.origin` | Rulebricks instance URL       |
-| `height`          | `number`   | `600`                    | Container height in pixels    |
-| `showFooter`      | `boolean`  | `true`                   | Show bottom status bar        |
-| `showControls`    | `boolean`  | `true`                   | Show top navbar               |
-| `showRowSettings` | `boolean`  | `false`                  | Show row settings gear icon   |
-| `onPublish`       | `function` | –                        | Called when rule is published |
-| `onError`         | `function` | –                        | Called on errors              |
+| Prop                  | Type       | Default                  | Description                                              |
+| --------------------- | ---------- | ------------------------ | -------------------------------------------------------- |
+| `embedToken`          | `string`   | required                 | Token from your backend                                  |
+| `apiBaseUrl`          | `string`   | `window.location.origin` | Rulebricks instance URL                                  |
+| `height`              | `number`   | `600`                    | Container height in pixels                               |
+| `showFooter`          | `boolean`  | `true`                   | Show bottom status bar                                   |
+| `showControls`        | `boolean`  | `true`                   | Show top navbar                                          |
+| `showRowSettings`     | `boolean`  | `false`                  | Show row settings gear icon                              |
+| `publishVersionNotes` | `boolean`  | `false`                  | Ask for an optional version note when publishing         |
+| `requestLabel`        | `string`   | `"Request"`              | Override the request section header label                |
+| `responseLabel`       | `string`   | `"Response"`             | Override the response section header label               |
+| `operatorsUrl`        | `string`   | platform default         | Operator metadata endpoint (for private instances)       |
+| `onPublish`           | `function` | –                        | Called when rule is published                            |
+| `onError`             | `function` | –                        | Called on initialization or publish errors               |
+
+### Ref methods
+
+Attach a `ref` to the `Rule` component to drive testing programmatically:
+
+```jsx
+const ruleRef = useRef(null);
+
+// ...
+<Rule ref={ruleRef} embedToken={token} />;
+
+// Evaluate the draft rule against a payload and highlight matching cells
+const result = await ruleRef.current.testRule({ amount: 100 });
+
+ruleRef.current.clearTestResults(); // remove cell highlighting
+ruleRef.current.getRule(); // current in-memory rule data
+ruleRef.current.isTestLoading(); // test-in-flight flag
+```
 
 ### How It Works
 

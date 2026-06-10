@@ -1,7 +1,6 @@
 import { nanoid } from "nanoid";
 import randomColorLib from "random-color";
 import { processValue } from "./TypeEditor";
-import { getColumnSchema, mergeSchemas } from "../../utils/schema";
 import { setPath } from "../../utils/object";
 
 const randomColor = () => randomColorLib().hexString();
@@ -121,7 +120,10 @@ function updateGroupSettings(
   }
 }
 
-function addRow({ rule: { conditions }, updateRule, setTestState, user }) {
+function addRow(
+  { rule: { conditions }, updateRule, setTestState, user },
+  args
+) {
   const updatedBy = safeUpdatedBy(user);
   const blankCondition = {
     request: {},
@@ -129,9 +131,25 @@ function addRow({ rule: { conditions }, updateRule, setTestState, user }) {
     settings: { enabled: true, schedule: [], priority: 0, groupId: null },
   };
   setTestState(null);
+
+  let newConditions;
+  if (
+    typeof args?.insertAfterIdx === "number" &&
+    args.insertAfterIdx >= 0 &&
+    args.insertAfterIdx < conditions.length
+  ) {
+    newConditions = [
+      ...conditions.slice(0, args.insertAfterIdx + 1),
+      blankCondition,
+      ...conditions.slice(args.insertAfterIdx + 1),
+    ];
+  } else {
+    newConditions = [...conditions, blankCondition];
+  }
+
   updateRule.mutate({
-    conditions: [...conditions, blankCondition],
-    no_conditions: conditions?.length || 0,
+    conditions: newConditions,
+    no_conditions: newConditions?.length || 0,
     updatedAt: new Date().toISOString(),
     updatedBy,
   });
@@ -163,18 +181,25 @@ function clearSelectedRows({
   });
 }
 
-function deleteSelectedRows({
-  rule: { conditions },
-  selectedRows,
-  setSelectedRows,
-  setTestState,
-  updateRule,
-  user,
-}) {
+function deleteSelectedRows(
+  {
+    rule: { conditions },
+    selectedRows,
+    setSelectedRows,
+    setTestState,
+    updateRule,
+    user,
+  },
+  args
+) {
   const updatedBy = safeUpdatedBy(user);
+  const rowIds = args?.rowIds ?? selectedRows;
+  if (!rowIds || rowIds.size === 0) return;
   setTestState(null);
-  const newConditions = conditions.filter((_x, idx) => !selectedRows.has(idx));
-  setSelectedRows(new Set());
+  const newConditions = conditions.filter((_x, idx) => !rowIds.has(idx));
+  if (!args?.rowIds) {
+    setSelectedRows(new Set());
+  }
   updateRule.mutate({
     conditions: newConditions,
     no_conditions: newConditions?.length || 0,
@@ -197,7 +222,7 @@ function duplicateSelectedRows({
   setSelectedRows(new Set());
   updateRule.mutate({
     conditions: [...conditions, ...newConditions],
-    no_conditions: conditions?.length || 0,
+    no_conditions: conditions.length + newConditions.length,
     updatedAt: new Date().toISOString(),
     updatedBy,
   });
@@ -253,6 +278,64 @@ function moveSelectedRowsToBottom({
   });
 }
 
+function moveSelectedRowsToPosition(
+  {
+    rule: { conditions },
+    selectedRows,
+    setSelectedRows,
+    setTestState,
+    updateRule,
+    user,
+  },
+  { targetIndex }
+) {
+  if (!Array.isArray(conditions) || selectedRows.size === 0) return null;
+  const parsed = Number(targetIndex);
+  if (!Number.isFinite(parsed)) return null;
+
+  const updatedBy = safeUpdatedBy(user);
+  const selectedConditions = conditions.filter((_x, idx) =>
+    selectedRows.has(idx)
+  );
+  const remainingConditions = conditions.filter(
+    (_x, idx) => !selectedRows.has(idx)
+  );
+
+  // Clamp the 1-based target so the first selected row always lands at a
+  // valid slot even when the user's input is out of range.
+  const maxTarget = conditions.length - selectedConditions.length + 1;
+  const oneBased = Math.max(1, Math.min(Math.floor(parsed), maxTarget));
+  const zeroBased = oneBased - 1;
+
+  setTestState(null);
+
+  const newConditions = [
+    ...remainingConditions.slice(0, zeroBased),
+    ...selectedConditions,
+    ...remainingConditions.slice(zeroBased),
+  ];
+
+  // Keep the moved rows selected at their new contiguous location so the
+  // user can chain further actions on the same selection.
+  setSelectedRows(
+    new Set(
+      Array.from(
+        { length: selectedConditions.length },
+        (_, i) => zeroBased + i
+      )
+    )
+  );
+
+  updateRule.mutate({
+    conditions: newConditions,
+    no_conditions: newConditions?.length || 0,
+    updatedAt: new Date().toISOString(),
+    updatedBy,
+  });
+
+  return { targetIndex: zeroBased };
+}
+
 function toggleSidebar() {}
 
 function openSidebarToColumn() {}
@@ -260,68 +343,6 @@ function openSidebarToColumn() {}
 function updateRuleName({ updateRule, user }, { name }) {
   updateRule.mutate({
     name,
-    updatedAt: new Date().toISOString(),
-    updatedBy: safeUpdatedBy(user),
-  });
-}
-
-function updateSectionSchema(
-  {
-    rule: { conditions, requestSchema, responseSchema },
-    setTestState,
-    updateRule,
-    focusedColumnKey,
-    setFocusedColumnKey,
-    user,
-  },
-  { sectionKey, newSampleJSON }
-) {
-  setTestState(null);
-
-  let columnSchemaKey, columnSchema, sampleJSONKey;
-  if (sectionKey === "request") {
-    sampleJSONKey = "sampleRequest";
-    columnSchemaKey = "requestSchema";
-    columnSchema = requestSchema;
-  } else {
-    sampleJSONKey = "sampleResponse";
-    columnSchemaKey = "responseSchema";
-    columnSchema = responseSchema;
-  }
-
-  const newSchema = getColumnSchema(newSampleJSON);
-  const mergedSchema = mergeSchemas(columnSchema, newSchema);
-
-  for (const col of mergedSchema) {
-    col.show = true;
-  }
-
-  const colsToClear = new Set();
-  for (const oldCol of columnSchema) {
-    const newCol = newSchema.find((x) => x.key === oldCol.key);
-    if (!newCol || newCol.type !== oldCol.type) {
-      colsToClear.add(oldCol.key);
-    }
-  }
-
-  const newConditions = structuredClone(conditions);
-  for (const condition of newConditions) {
-    for (const colKey of colsToClear) {
-      delete condition[sectionKey][colKey];
-    }
-  }
-
-  if (
-    focusedColumnKey !== null &&
-    !mergedSchema?.find((x) => x.key === focusedColumnKey)
-  ) {
-    setFocusedColumnKey(mergedSchema[0] ? mergedSchema[0].key : null);
-  }
-
-  updateRule.mutate({
-    [sampleJSONKey]: newSampleJSON,
-    [columnSchemaKey]: mergedSchema,
-    conditions: newConditions,
     updatedAt: new Date().toISOString(),
     updatedBy: safeUpdatedBy(user),
   });
@@ -370,6 +391,7 @@ function updateColumnSchema(
   const updatedValues = {};
   const newSchema = structuredClone(columnSchema);
   const col = newSchema.find((x) => x.key === key);
+  if (!col) return;
 
   if (nameValue !== undefined) col.name = nameValue;
   if (descriptionValue !== undefined) col.description = descriptionValue;
@@ -385,7 +407,7 @@ function updateColumnSchema(
 
   if (defaultValue !== undefined) {
     col.defaultValue = processValue(typeValue, defaultValue).value;
-    const newJSON = structuredClone(sampleJSON);
+    const newJSON = structuredClone(sampleJSON ?? {});
     setPath(newJSON, col.key.split("."), col.defaultValue);
     updatedValues[sampleJSONKey] = newJSON;
   }
@@ -396,7 +418,7 @@ function updateColumnSchema(
 
   updatedValues[columnSchemaKey] = newSchema;
 
-  updateRule.mutate({
+  return updateRule.mutateAsync({
     ...updatedValues,
     updatedAt: new Date().toISOString(),
     updatedBy: safeUpdatedBy(user),
@@ -593,11 +615,11 @@ export default {
   duplicateSelectedRows,
   moveSelectedRowsToTop,
   moveSelectedRowsToBottom,
+  moveSelectedRowsToPosition,
   toggleSidebar,
   openSidebarToColumn,
   updateRuleName,
   updateColumnSchema,
-  updateSectionSchema,
   updateCellData,
   batchUpdateCellData,
   ungroupAllRowsInGroup,
