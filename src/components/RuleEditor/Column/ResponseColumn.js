@@ -14,7 +14,9 @@ export default function ResponseColumn(
   canHide,
   readOnly,
   lockedSchema,
-  sectionLabel = null
+  sectionLabel = null,
+  showSectionHeader = colIdx === 0,
+  sectionHeaderMetrics = {}
 ) {
   // remove key from sampleResponse
   if (sampleResponse) {
@@ -36,6 +38,9 @@ export default function ResponseColumn(
     resizable: false,
     readOnly,
     lockedSchema,
+    showSectionHeader,
+    sectionHeaderWidth: sectionHeaderMetrics.width,
+    sectionLabelLeft: sectionHeaderMetrics.labelLeft,
     headerRenderer: RequestHeaderCell,
     formatter: ({ row, isCellSelected }) => {
       return (

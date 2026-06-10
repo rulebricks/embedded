@@ -11,8 +11,8 @@ function handleRulebricksObject(value, globalValues) {
     value.every((item) => item?.$rb === "globalValue")
   ) {
     return (
-      <div className="font-mono">
-        <span className="text-orange-500 font-semibold rounded-sm w-full">
+      <div className="font-sans">
+        <span className="text-orange-500 font-sans rounded-sm w-full">
           {value.slice(0, 3).map((item, index) => (
             <>
               <span
@@ -24,7 +24,7 @@ function handleRulebricksObject(value, globalValues) {
                 )}
                 className="bg-orange-50/50 border shadow-sm border-orange-800 border-opacity-10 h-8 p-1.5 rounded-sm"
               >
-                {item.name}
+                {item.name.split(".").pop()}
               </span>
               {index < value.length - 1 && " "}
             </>
@@ -37,15 +37,15 @@ function handleRulebricksObject(value, globalValues) {
   if (typeof value === "object" && value?.$rb === "globalValue") {
     return (
       <div
-        className="font-mono self-center h-full"
+        className="font-sans self-center h-full"
         title={JSON.stringify(
           globalValues.find((v) => v.id === value.id)?.value,
           null,
           2
         )}
       >
-        <span className="text-orange-500 font-semibold shadow-sm bg-orange-50/50 border border-orange-800 border-opacity-10 h-8 p-1.5 flex place-items-center rounded-sm w-fit">
-          {value.name}
+        <span className="text-orange-500 font-sans shadow-sm bg-orange-50/50 border border-orange-800 border-opacity-10 h-8 p-1.5 flex place-items-center rounded-sm w-fit">
+          {value.name.split(".").pop()}
         </span>
       </div>
     );
@@ -122,13 +122,13 @@ function ListFormatter({ children, globalValues }) {
       {children.slice(0, 3).map((child, index) => (
         <div key={index} className={`flex flex-row ${index > 0 && "pl-3"}`}>
           {Array.isArray(child) && (
-            <TypeFormatter type="list" children={child} />
+            <TypeFormatter type="list" children={child} globalValues={globalValues} />
           )}
           {typeof child === "object" && (
-            <TypeFormatter type="generic" children={child} />
+            <TypeFormatter type="generic" children={child} globalValues={globalValues} />
           )}
           {!Array.isArray(child) && typeof child !== "object" && (
-            <TypeFormatter type={typeof child} children={child} />
+            <TypeFormatter type={typeof child} children={child} globalValues={globalValues} />
           )}
           {index < children.length - 1 && (
             <span className="text-sky-600 font-semibold">,</span>
@@ -232,10 +232,9 @@ const Formatters = {
   object: ObjectFormatter,
 };
 
-export default function TypeFormatter({ type, children }) {
-  // In embed mode, global values come from parent component
-  const globalValues = [];
-
+// In embed mode, global values are passed down from the parent component
+// (they arrive with the /api/embed/verify payload) instead of auth hooks.
+export default function TypeFormatter({ type, children, globalValues = [] }) {
   if (children === null) {
     return <div className="text-editorDisabledGray font-mono">null</div>;
   }

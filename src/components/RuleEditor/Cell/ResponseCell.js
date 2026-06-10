@@ -2,6 +2,7 @@ import { VariableIcon } from "@heroicons/react/20/solid";
 import classNames from "classnames";
 import { js_beautify } from "js-beautify";
 import json5 from "json5";
+import moment from "moment/moment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactSelect from "react-select";
 import Toggle from "../../ui/Toggle";
@@ -172,6 +173,23 @@ export function EditPopover({
     setIsNull(false);
   }, []);
 
+  const isSingleGlobalListSelection = useMemo(() => {
+    return (
+      selectValue &&
+      !Array.isArray(selectValue) &&
+      getGlobalValue(selectValue?.value?.id)?.type === "list"
+    );
+  }, [selectValue, getGlobalValue]);
+
+  const isSelectMulti = useMemo(() => {
+    return isListType && !isGlobalList && !isSingleGlobalListSelection;
+  }, [isListType, isGlobalList, isSingleGlobalListSelection]);
+
+  const selectRenderKey = useMemo(
+    () => `response-global-select-${isSelectMulti ? "multi" : "single"}`,
+    [isSelectMulti]
+  );
+
   const handleSelectChange = (v) => {
     if (isListType) {
       if (Array.isArray(v)) {
@@ -274,6 +292,7 @@ export function EditPopover({
               />
             ) : (
               <ReactSelect
+                key={selectRenderKey}
                 classNames={{
                   control: () => "min-h-10 rounded-sm",
                 }}
@@ -288,26 +307,8 @@ export function EditPopover({
                   }),
                 }}
                 autoFocus={true}
-                isMulti={
-                  isListType &&
-                  !isGlobalList &&
-                  !(
-                    selectValue &&
-                    !Array.isArray(selectValue) &&
-                    getGlobalValue(selectValue?.value?.id)?.type === "list"
-                  )
-                }
-                closeMenuOnSelect={
-                  !(
-                    isListType &&
-                    !isGlobalList &&
-                    !(
-                      selectValue &&
-                      !Array.isArray(selectValue) &&
-                      getGlobalValue(selectValue?.value?.id)?.type === "list"
-                    )
-                  )
-                }
+                isMulti={isSelectMulti}
+                closeMenuOnSelect={!isSelectMulti}
                 formatOptionLabel={(optionData) => (
                   <div className="flex items-center " title={optionData.label}>
                     <span className="text-xs truncate font-mono">
@@ -417,7 +418,9 @@ export default function ResponseCell({
     >
       {({ referenceElement, setEditing, showPopover }) => (
         <>
-          <TypeFormatter type={type}>{cellValue}</TypeFormatter>
+          <TypeFormatter type={type} globalValues={globalValues}>
+            {cellValue}
+          </TypeFormatter>
           {showPopover && (
             <EditPopover
               key={type}

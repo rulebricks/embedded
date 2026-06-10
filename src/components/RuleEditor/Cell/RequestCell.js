@@ -1,6 +1,7 @@
 import { VariableIcon } from "@heroicons/react/20/solid";
 import classNames from "classnames";
 import json5 from "json5";
+import moment from "moment/moment";
 import { useEffect, useState } from "react";
 import ReactSelect from "react-select";
 import TypeEditor, { processValue, unprocessValue } from "../TypeEditor";
@@ -47,13 +48,76 @@ function EditPopover({
     any: null,
   };
 
+  const getSelectValue = (arg, argDef) => {
+    if (!argDef) return null;
+    if (isListType(argDef.type)) {
+      if (Array.isArray(arg)) {
+        return arg.map((item) => ({
+          label: isGlobalValue(item, argDef.type)
+            ? getGlobalValue(item.id)?.name || "Unknown"
+            : String(item),
+          value: item,
+        }));
+      }
+      if (isGlobalValue(arg, argDef.type)) {
+        const globalValue = getGlobalValue(arg.id);
+        return globalValue
+          ? {
+              label: globalValue.name,
+              value: arg,
+            }
+          : null;
+      }
+    } else if (isGlobalValue(arg, argDef.type)) {
+      const globalValue = getGlobalValue(arg.id);
+      return globalValue
+        ? {
+            label: globalValue.name,
+            value: arg,
+          }
+        : null;
+    }
+    return null;
+  };
+
   const [args, setArgs] = useState(() => {
     const arr =
       initArgs || selectedOpDef.args.map((x) => defaultTypes[x.type]?.() ?? "");
     return arr.map((x, idx) => unprocessValue(selectedOpDef.args[idx].type, x));
   });
 
-  const [selectValues, setSelectValues] = useState([]);
+  const buildSelectValues = (nextArgs, nextOpDef) =>
+    nextArgs.map((arg, idx) => {
+      const argDef = nextOpDef.args[idx];
+      if (!argDef) return null;
+
+      if (
+        ["list", "generic", "any"].includes(argDef.type) &&
+        typeof arg === "string"
+      ) {
+        try {
+          arg = json5.parse(arg);
+        } catch (_e) {}
+      }
+
+      // Handle array of global values
+      if (
+        Array.isArray(arg) &&
+        arg.length > 0 &&
+        arg.every((item) => isGlobalValue(item, argDef.type))
+      ) {
+        return arg.map((item) => ({
+          label: getGlobalValue(item.id)?.name || "Unknown",
+          value: item,
+        }));
+      }
+
+      return getSelectValue(arg, argDef);
+    });
+
+  const [selectValues, setSelectValues] = useState(() =>
+    buildSelectValues(args, selectedOpDef)
+  );
 
   const [isGlobalMode, setIsGlobalMode] = useState(() =>
     args.map((arg, idx) => {
@@ -84,35 +148,7 @@ function EditPopover({
   );
 
   useEffect(() => {
-    const newSelectValues = args.map((arg, idx) => {
-      const argDef = selectedOpDef.args[idx];
-      if (!argDef) return null;
-
-      if (
-        ["list", "generic", "any"].includes(argDef.type) &&
-        typeof arg === "string"
-      ) {
-        try {
-          arg = json5.parse(arg);
-        } catch (_e) {}
-      }
-
-      // Handle array of global values
-      if (
-        Array.isArray(arg) &&
-        arg.length > 0 &&
-        arg.every((item) => isGlobalValue(item, argDef.type))
-      ) {
-        return arg.map((item) => ({
-          label: getGlobalValue(item.id)?.name || "Unknown",
-          value: item,
-        }));
-      }
-
-      return getSelectValue(arg, argDef);
-    });
-
-    setSelectValues(newSelectValues);
+    setSelectValues(buildSelectValues(args, selectedOpDef));
   }, [args, selectedOpDef]);
 
   const processedArgs = args.map(
@@ -146,37 +182,6 @@ function EditPopover({
       );
     }
     return isGlobalValue(arg, argType);
-  };
-
-  const getSelectValue = (arg, argDef) => {
-    if (isListType(argDef.type)) {
-      if (Array.isArray(arg)) {
-        return arg.map((item) => ({
-          label: isGlobalValue(item, argDef.type)
-            ? getGlobalValue(item.id)?.name || "Unknown"
-            : String(item),
-          value: item,
-        }));
-      }
-      if (isGlobalValue(arg, argDef.type)) {
-        const globalValue = getGlobalValue(arg.id);
-        return globalValue
-          ? {
-              label: globalValue.name,
-              value: arg,
-            }
-          : null;
-      }
-    } else if (isGlobalValue(arg, argDef.type)) {
-      const globalValue = getGlobalValue(arg.id);
-      return globalValue
-        ? {
-            label: globalValue.name,
-            value: arg,
-          }
-        : null;
-    }
-    return null;
   };
 
   const handleSelectChange = (v, idx, argDef) => {
@@ -312,7 +317,9 @@ function EditPopover({
             );
             setArgs(newArgs);
             setTimeout(() => {
-              document?.querySelector(".tf-input")?.focus();
+              if (typeof document !== "undefined") {
+                document.querySelector(".tf-input")?.focus();
+              }
             }, 20);
           }}
         />
@@ -328,6 +335,14 @@ function EditPopover({
                     (item) => getGlobalValue(item.id)?.type === "list"
                   )
                 : getGlobalValue(args[idx]?.id)?.type === "list");
+            const isSingleGlobalListSelection =
+              !Array.isArray(selectValues[idx]) &&
+              getGlobalValue(selectValues[idx]?.value?.id)?.type === "list";
+            const isSelectMulti =
+              isArgListType && !isGlobalList && !isSingleGlobalListSelection;
+            const selectRenderKey = `request-arg-global-select-${idx}-${
+              isSelectMulti ? "multi" : "single"
+            }`;
             const availableGlobalValues =
               argDef.type === "list"
                 ? globalValues
@@ -382,7 +397,7 @@ function EditPopover({
                         />
                       ) : (
                         <ReactSelect
-                          key={isArgListType && !isGlobalList}
+                          key={selectRenderKey}
                           classNames={{
                             control: (_base) => "min-h-10 rounded-sm",
                           }}
@@ -396,22 +411,13 @@ function EditPopover({
                               minWidth: "300px",
                             }),
                           }}
-                          isMulti={
-                            isArgListType &&
-                            !isGlobalList &&
-                            !(
-                              typeof selectValues[idx]?.type !== "object" &&
-                              globalValues.find(
-                                (v) => v.id === selectValues[idx]?.value?.id
-                              )?.type === "list"
-                            )
-                          }
+                          isMulti={isSelectMulti}
                           formatOptionLabel={(optionData) => (
                             <div
                               className="flex items-center "
                               title={optionData.label}
                             >
-                              <span className="text-xs truncate font-mono">
+                              <span className="text-xs truncate">
                                 {requestSchema?.valuesPrefix
                                   ? optionData.label.replace(
                                       requestSchema?.valuesPrefix,
@@ -453,8 +459,10 @@ function EditPopover({
                                   },
                                 }))
                           }
-                          closeMenuOnSelect={!(isArgListType && !isGlobalList)}
-                          value={selectValues[idx]}
+                          closeMenuOnSelect={!isSelectMulti}
+                          value={
+                            selectValues[idx] ?? (isSelectMulti ? [] : null)
+                          }
                           onChange={(v) => handleSelectChange(v, idx, argDef)}
                         />
                       )}
@@ -518,17 +526,21 @@ export default function RequestCell({
   const displayedOp = cellData ? cellData.op : "any";
   const displayedArgs = cellData ? cellData.args : [];
   const opDef = types[type]?.operators?.[displayedOp];
+  const isFailingTestHighlight = showTest && testState && !testState.result;
+  const isPassingTestHighlight =
+    showTest &&
+    !isFailingTestHighlight &&
+    (testState?.result || displayedOp === "any");
 
   return (
     <CellWrapper
       selected={selected}
       className={classNames(
         "transition-all duration-100",
-        showTest &&
-          (testState?.result || displayedOp === "any") &&
-          "bg-green-400 bg-opacity-20",
+        isPassingTestHighlight &&
+          (isPinned ? "bg-green-100" : "bg-green-400 bg-opacity-20"),
         deactivated && "opacity-30 pointer-events-none",
-        showTest && testState && !testState.result && "bg-red-200",
+        isFailingTestHighlight && (isPinned ? "bg-red-100" : "bg-red-200"),
         rowSettings?.or && "border-r-4 border-orange-300 border-dashed",
         readOnly && "opacity-95 duration-1000 pointer-events-none"
       )}
@@ -546,7 +558,7 @@ export default function RequestCell({
                 "px-1.5 outline-none focus:outline-none duration-0",
                 displayedOp === "any"
                   ? "text-neutral-300 group-hover:text-neutral-800"
-                  : "text-editorGray font-medium hover:shadow-none hover:bg-white shadow-sm h-8 my-auto border border-black border-opacity-10 rounded-sm",
+                  : "text-editorGray font-medium hover:shadow-none hover:bg-white shadow-sm transform-gpu h-8 my-auto border border-black border-opacity-10 rounded-sm",
                 "text-sm font-medium"
               )}
               onClick={() => setEditing(true)}
@@ -557,7 +569,11 @@ export default function RequestCell({
               <div className="inline-flex items-center text-center" key={idx}>
                 {opDef && (
                   <>
-                    <TypeFormatter type={opDef.args[idx].type} key={idx}>
+                    <TypeFormatter
+                      type={opDef.args[idx].type}
+                      key={idx}
+                      globalValues={globalValues}
+                    >
                       {x}
                     </TypeFormatter>
                     {displayedArgs.length > 1 &&

@@ -212,7 +212,6 @@ function SelectFormatter(props) {
       selectedRows={props.selectedRows}
       readOnly={props.readOnly}
       showRowSettings={props.showRowSettings}
-      embedMode={props.embedMode}
     />
   );
 }

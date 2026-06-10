@@ -28,6 +28,11 @@ import { withinSchedule } from "../../utils/schedule";
 import { useEmbedRuleMutator } from "../../hooks/useEmbedRuleMutator";
 import { splitKey } from "../../utils/table";
 import { batchDebounce } from "../../utils/concurrency";
+import {
+  createEdgeAutoScroller,
+  getGridContainer,
+  scrollRowIntoView,
+} from "../../utils/autoScroll";
 import { useOperators } from "../../context/OperatorsContext";
 
 export default function RuleEditorTable({
@@ -36,6 +41,7 @@ export default function RuleEditorTable({
   // Embed props
   editMode = "full", // 'none', 'cells', or 'full'
   canPublish = false,
+  publishVersionNotes = false, // Show optional version-note popover on publish
   lockedSchema: lockedSchemaProp = null, // null = derive from editMode, true/false = explicit
   embedToken = null,
   apiBaseUrl = null,
@@ -46,6 +52,7 @@ export default function RuleEditorTable({
   showRowSettings = false, // Whether to show the gear icon in rows
   onRuleChange = null,
   onPublish = null,
+  onError = null,
   // Configurable column labels
   requestLabel = null,
   responseLabel = null,
@@ -75,6 +82,8 @@ export default function RuleEditorTable({
   const [selectedCell, setSelectedCell] = useState(null);
   const [hasInternalCopy, setHasInternalCopy] = useState(false);
   const [pinnedColumns, setPinnedColumns] = useState(new Set());
+  const [frozenColumnOffsetStyles, setFrozenColumnOffsetStyles] = useState("");
+  const [sectionHeaderMetrics, setSectionHeaderMetrics] = useState({});
 
   // Use embed mutator for API-based mutations
   const queryClient = useQueryClient();
@@ -100,6 +109,47 @@ export default function RuleEditorTable({
 
   // Use embedUser prop if provided, otherwise fall back to default
   const effectiveUser = embedUser || { name: "Embed User", email: "" };
+
+  // After a row move (button, popover, or drag-drop), bring the moved row
+  // into view and shift react-data-grid's internal focus onto it so rdg's
+  // own scroll-on-mount logic (which targets the previously-selected cell)
+  // can't drag the viewport back to a stale cell.
+  const focusMovedRow = useCallback(
+    (newRowIdx) => {
+      if (typeof newRowIdx !== "number" || newRowIdx < 0) return;
+      const preferredColIdx = selectedCell?.column?.idx;
+      const colIdx =
+        typeof preferredColIdx === "number" && preferredColIdx >= 1
+          ? preferredColIdx
+          : 1;
+
+      // Wait one frame so rdg has rendered the new row order before we move
+      // its selection (and so its own scrollIntoView runs on the right cell).
+      requestAnimationFrame(() => {
+        const grid = gridRef.current;
+        if (grid && typeof grid.selectCell === "function") {
+          grid.selectCell({ rowIdx: newRowIdx, idx: colIdx });
+        }
+
+        // Mirror the new focus in our local selectedCell state so paste
+        // targeting stays in sync with rdg.
+        const row = { id: newRowIdx };
+        const columnForState =
+          selectedCell?.column && selectedCell.column.idx === colIdx
+            ? selectedCell.column
+            : { idx: colIdx, key: selectedCell?.column?.key };
+        setSelectedCell({ row, column: columnForState });
+
+        // Use an instant scroll so we land at the true top (scrollTop 0)
+        // before rdg's cell-mount scrollIntoView runs. A smooth scroll gets
+        // interrupted by rdg's synchronous scrollIntoView on the selected
+        // cell, which honours scrollPaddingBlock and leaves row 0 clipped
+        // just under the header.
+        scrollRowIntoView(getGridContainer(), newRowIdx, { behavior: "auto" });
+      });
+    },
+    [selectedCell]
+  );
 
   const rowRenderer = useCallback(
     (key, props) => {
@@ -213,7 +263,67 @@ export default function RuleEditorTable({
     }
   }, [searchRows, rows]);
 
-  // listen for undo/redo events
+  // Auto-scroll the decision table near viewport edges while the user is
+  // dragging the cell-fill handle or re-ordering rows. Both interactions
+  // share a single edge-based scroller instance so they never fight.
+  useEffect(() => {
+    if (!canEdit) return;
+
+    const autoScroller = createEdgeAutoScroller(getGridContainer);
+
+    // --- Cell-fill drag (react-data-grid fill handle) -----------------------
+    // react-data-grid exposes the fill handle as `.rdg-cell-drag-handle` and
+    // tracks the drag via window-level mousemove/mouseup. We piggy-back on
+    // the same lifecycle: start tracking on mousedown on the handle, update
+    // the scroller on every mousemove, and stop on mouseup.
+    const handleFillMouseDown = (event) => {
+      if (event.button !== 0) return;
+      if (!event.target?.closest?.(".rdg-cell-drag-handle")) return;
+      const onMouseMove = (e) => autoScroller.update(e.clientY);
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        autoScroller.stop();
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    };
+
+    // --- Row-reorder drag (react-dnd HTML5 backend) -------------------------
+    // The HTML5 backend fires native dragover events while a row is being
+    // dragged. We only care when the pointer is over the grid, and stop on
+    // dragend/drop (both fire on the source element at the end of a drag).
+    const handleDragOver = (event) => {
+      const container = getGridContainer();
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      ) {
+        return;
+      }
+      autoScroller.update(event.clientY);
+    };
+    const stopDragAutoScroll = () => autoScroller.stop();
+
+    document.addEventListener("mousedown", handleFillMouseDown, true);
+    document.addEventListener("dragover", handleDragOver);
+    document.addEventListener("dragend", stopDragAutoScroll);
+    document.addEventListener("drop", stopDragAutoScroll);
+
+    return () => {
+      document.removeEventListener("mousedown", handleFillMouseDown, true);
+      document.removeEventListener("dragover", handleDragOver);
+      document.removeEventListener("dragend", stopDragAutoScroll);
+      document.removeEventListener("drop", stopDragAutoScroll);
+      autoScroller.stop();
+    };
+  }, [canEdit]);
+
+  // listen for undo/redo events and row keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "z" && e.metaKey) {
@@ -231,9 +341,52 @@ export default function RuleEditorTable({
           sendAction("undoRuleUpdate");
         }
       }
-      // shift + space seems to select rows. disable this
-      if (e.key === " " && e.shiftKey) {
+
+      // Shared guard: skip row shortcuts in editable text inputs, popovers,
+      // or without edit access.
+      const isRowShortcutBlocked = () => {
+        if (!canEdit) return true;
+        const ae = document.activeElement;
+        if (!ae) return false;
+        if (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA") return true;
+        if (ae.isContentEditable) return true;
+        if (ae.closest(".cm-content")) return true;
+        if (ae.closest(".cell-popover")) return true;
+        return false;
+      };
+
+      // Cmd/Ctrl + Enter: insert a row below the focused cell, or append if none
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        if (isRowShortcutBlocked()) return;
         e.preventDefault();
+        const focusedRowId = selectedCell?.row?.id;
+        if (typeof focusedRowId === "number") {
+          sendAction("addRow", { insertAfterIdx: focusedRowId });
+        } else {
+          sendAction("addRow");
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + Backspace/Delete: delete rows (selectedRows, or focused row)
+      if (
+        (e.key === "Backspace" || e.key === "Delete") &&
+        (e.metaKey || e.ctrlKey)
+      ) {
+        if (isRowShortcutBlocked()) return;
+        if (selectedRows && selectedRows.size > 0) {
+          e.preventDefault();
+          sendAction("deleteSelectedRows");
+          return;
+        }
+        const focusedRowId = selectedCell?.row?.id;
+        if (focusedRowId !== undefined && focusedRowId !== null) {
+          e.preventDefault();
+          sendAction("deleteSelectedRows", {
+            rowIds: new Set([focusedRowId]),
+          });
+          return;
+        }
       }
       // if the user is focuesed on any nested child of the .cell-popover element and inside anything besides
       // a textarea, allow enter to save and escape to cancel
@@ -270,7 +423,7 @@ export default function RuleEditorTable({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [sendAction]);
+  }, [sendAction, selectedCell, selectedRows, canEdit]);
 
   const [focusedColumnKey, setFocusedColumnKey] = useState(null);
   // Global paste handler for when grid's onPaste isn't active
@@ -438,7 +591,11 @@ export default function RuleEditorTable({
       });
     }
 
-    return await tableActions[action](
+    // Capture pre-move conditions length so the bottom-target index remains
+    // correct regardless of how selectedRows is reset during the action.
+    const preMoveConditionsLen = rule?.conditions?.length || 0;
+
+    const result = await tableActions[action](
       {
         testState,
         setTestState,
@@ -450,12 +607,28 @@ export default function RuleEditorTable({
         setFocusedColumnKey,
         updateRule,
         rule,
-        user: null,
+        user: effectiveUser,
         pinnedColumns,
         setPinnedColumns,
       },
       args
     );
+
+    if (action === "moveSelectedRowsToTop") {
+      focusMovedRow(0);
+    } else if (action === "moveSelectedRowsToBottom") {
+      focusMovedRow(Math.max(0, preMoveConditionsLen - 1));
+    } else if (action === "moveSelectedRowsToPosition") {
+      const zeroBased =
+        result && typeof result.targetIndex === "number"
+          ? result.targetIndex
+          : null;
+      if (zeroBased !== null) {
+        focusMovedRow(zeroBased);
+      }
+    }
+
+    return result;
   }
 
   const showTest = !!testState;
@@ -466,6 +639,12 @@ export default function RuleEditorTable({
 
   const columns = useMemo(() => {
     if (!rule) return [];
+
+    const firstPinnedRequestColumn = visibleRequestColumns.find((col) =>
+      pinnedColumns.has(col.key)
+    );
+    const requestSectionHeaderKey =
+      firstPinnedRequestColumn?.key ?? visibleRequestColumns[0]?.key;
 
     return [
       // Use select column if user has edit permissions, otherwise use a placeholder column
@@ -554,7 +733,9 @@ export default function RuleEditorTable({
           !canEdit, // readOnly flag
           !canViewSchema,
           pinnedColumns.has(col.key), // isPinned flag
-          requestLabel
+          requestLabel,
+          col.key === requestSectionHeaderKey,
+          sectionHeaderMetrics.request
         )
       ),
       ...visibleResponseColumns.map((col, colIdx) =>
@@ -571,7 +752,9 @@ export default function RuleEditorTable({
           canViewSchema && visibleResponseColumns.length > 1,
           !canEdit, // readOnly flag
           !canViewSchema,
-          responseLabel
+          responseLabel,
+          colIdx === 0,
+          sectionHeaderMetrics.response
         )
       ),
     ];
@@ -590,7 +773,153 @@ export default function RuleEditorTable({
     canViewSchema,
     pinnedColumns,
     showRowSettings,
+    sectionHeaderMetrics,
   ]);
+
+  // Central layout engine for section headers and pinned (frozen) columns.
+  // Measures rendered column headers with a ResizeObserver + rAF and emits:
+  // - sectionHeaderMetrics: { request|response: { width, labelLeft } }
+  // - frozenColumnOffsetStyles: CSS overriding frozen cell offsets per column
+  useEffect(() => {
+    let frameId = null;
+    let resizeObserver = null;
+
+    // Prefer this instance's grid element so multiple embeds on a page
+    // don't measure each other's headers.
+    const getGridElement = () =>
+      gridRef.current?.element ??
+      document.querySelector(".rule-editor-grid");
+
+    const updateHeaderLayout = () => {
+      const grid = getGridElement();
+      if (!grid) {
+        setFrozenColumnOffsetStyles("");
+        setSectionHeaderMetrics((currentMetrics) =>
+          Object.keys(currentMetrics).length === 0 ? currentMetrics : {}
+        );
+        return;
+      }
+
+      const headers = Array.from(
+        grid.querySelectorAll('.rdg-cell[role="columnheader"]')
+      ).sort(
+        (a, b) =>
+          Number(a.getAttribute("aria-colindex")) -
+          Number(b.getAttribute("aria-colindex"))
+      );
+      const sectionHeaders = headers
+        .map((header) => ({
+          header,
+          section: header.querySelector("div[name]")?.getAttribute("name"),
+        }))
+        .filter(({ section }) => section);
+      const frozenHeaders = headers.filter((header) =>
+        header.classList.contains("rdg-cell-frozen")
+      );
+
+      const widthOf = (headersForWidth) =>
+        headersForWidth.reduce(
+          (total, header) => total + header.getBoundingClientRect().width + 2,
+          0
+        );
+
+      const requestHeaders = sectionHeaders
+        .filter(({ section }) => section === "request")
+        .map(({ header }) => header);
+      const responseHeaders = sectionHeaders
+        .filter(({ section }) => section === "response")
+        .map(({ header }) => header);
+      const frozenRequestHeaders = requestHeaders.filter((header) =>
+        header.classList.contains("rdg-cell-frozen")
+      );
+      const requestHeadersForWidth =
+        pinnedColumns.size > 0 && frozenRequestHeaders.length > 0
+          ? frozenRequestHeaders
+          : requestHeaders;
+
+      let frozenWidth = 0;
+      let nextStyles = "";
+
+      if (pinnedColumns.size === 0 || frozenHeaders.length <= 1) {
+        setFrozenColumnOffsetStyles("");
+      } else {
+        let left = 0;
+        nextStyles = frozenHeaders
+          .map((header) => {
+            const ariaColIndex = header.getAttribute("aria-colindex");
+            const cssRule = `
+              .rule-editor-grid .rdg-cell-frozen[aria-colindex="${ariaColIndex}"] {
+                inset-inline-start: ${Math.round(left)}px !important;
+              }
+            `;
+
+            left += header.getBoundingClientRect().width;
+            return cssRule;
+          })
+          .join("\n");
+        frozenWidth = left;
+      }
+
+      const sectionLabelLeft = Math.round(frozenWidth + 12);
+      const cssVariables = `
+        .rule-editor-grid {
+          --rule-editor-frozen-width: ${Math.round(frozenWidth)}px;
+          --rule-editor-section-label-left: ${sectionLabelLeft}px;
+        }
+      `;
+      const nextMetrics = {
+        request: {
+          width: widthOf(requestHeadersForWidth) || 165 * 4,
+          labelLeft: "178px",
+        },
+        response: {
+          width: widthOf(responseHeaders) || 165 * 4,
+          labelLeft: frozenWidth > 0 ? `${sectionLabelLeft}px` : "178px",
+        },
+      };
+      const nextFrozenStyles =
+        frozenWidth > 0 ? `${cssVariables}\n${nextStyles}` : "";
+
+      setFrozenColumnOffsetStyles((currentStyles) =>
+        currentStyles === nextFrozenStyles ? currentStyles : nextFrozenStyles
+      );
+      setSectionHeaderMetrics((currentMetrics) =>
+        JSON.stringify(currentMetrics) === JSON.stringify(nextMetrics)
+          ? currentMetrics
+          : nextMetrics
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (frameId != null) {
+        cancelAnimationFrame(frameId);
+      }
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        updateHeaderLayout();
+      });
+    };
+
+    scheduleUpdate();
+    window.addEventListener("resize", scheduleUpdate);
+
+    const grid = getGridElement();
+    if (grid && typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(scheduleUpdate);
+      resizeObserver.observe(grid);
+      grid
+        .querySelectorAll('.rdg-cell[role="columnheader"]')
+        .forEach((header) => resizeObserver.observe(header));
+    }
+
+    return () => {
+      if (frameId != null) {
+        cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener("resize", scheduleUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [pinnedColumns, columns, filteredRows.length]);
 
   // Show loader while rule is not yet available
   if (!rule) {
@@ -627,6 +956,7 @@ export default function RuleEditorTable({
         className="flex flex-col text-editorBlack overflow-hidden relative"
         style={{ height: "100%", maxHeight: "100%" }}
       >
+        {frozenColumnOffsetStyles && <style>{frozenColumnOffsetStyles}</style>}
         {/* Hide navbar when showControls=false or in read-only mode (editMode='none') */}
         {showControls && editMode !== "none" && (
           <RuleEditorNavbar
@@ -641,9 +971,12 @@ export default function RuleEditorTable({
             editMode={editMode}
             canEditStructure={canEditStructure}
             canPublish={canPublish}
+            publishVersionNotes={publishVersionNotes}
             embedToken={embedToken}
             apiBaseUrl={apiBaseUrl}
             onPublish={onPublish}
+            onRuleChange={onRuleChange}
+            onError={onError}
             onOpenCommandPalette={() => {
               // AI palette is disabled in embed mode
             }}
@@ -654,8 +987,21 @@ export default function RuleEditorTable({
             <DataGrid
               ref={gridRef}
               onCellKeyDown={(gridEvent, e) => {
+                // Block react-data-grid's built-in Shift+Space row-select
+                if (e.key === " " && e.shiftKey) {
+                  e.preventGridDefault();
+                  e.preventDefault();
+                  return;
+                }
+
+                // Cmd/Ctrl+Backspace/Delete handled by the window-level
+                // shortcut; don't also clear the cell here.
+                const isModifiedDelete =
+                  ["Backspace", "Delete"].includes(e.key) &&
+                  (e.metaKey || e.ctrlKey);
+
                 // Only allow cell edits if user has edit permissions and not in readOnly mode
-                if (canEdit) {
+                if (canEdit && !isModifiedDelete) {
                   // if event.key is backspace or delete and the document.activeElement has role="gridcell"
                   // then we should clear the selected cell
                   if (
@@ -831,7 +1177,7 @@ export default function RuleEditorTable({
               rowKeyGetter={(row) => row.id}
               selectedRows={selectedRows}
               onSelectedRowsChange={setSelectedRows}
-              className="flex-1 rdg-light select-none h-full bg-editorBgGray gap-0.5 pt-10"
+              className="rule-editor-grid flex-1 rdg-light select-none h-full bg-editorBgGray gap-0.5 pt-10"
               enableVirtualization={true}
               headerRowHeight={75}
               rowHeight={44}

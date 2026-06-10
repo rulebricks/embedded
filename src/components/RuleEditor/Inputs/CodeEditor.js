@@ -6,28 +6,53 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import classNames from "classnames";
 import { unflatten } from "flat";
 import { js as beautify } from "js-beautify";
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import Modal from "../../ui/Modal";
 import standardLibraries from "../../../constants/standardLibraries";
 
-export default function CodeEditor({
-  value,
-  setValue,
-  disabled,
-  placeholder,
-  request = {},
-  response = {},
-  context = {},
-  readOnly = false,
-  multiline = false,
-  globalValues,
-  zoom = null,
-  maxWidth = "max-w-sm",
-}) {
+const CodeEditor = forwardRef(function CodeEditor(
+  {
+    value,
+    setValue,
+    disabled,
+    placeholder,
+    request = {},
+    response = {},
+    context = {},
+    readOnly = false,
+    multiline = false,
+    globalValues,
+    zoom = null,
+    maxWidth = "max-w-sm",
+    includeStandardLibraries = true,
+    onExpandedViewOpenChange,
+  },
+  ref
+) {
   const cmRef = useRef(null);
   const modalCmRef = useRef(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [justFormatted, setJustFormatted] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    get view() {
+      return cmRef.current?.view;
+    },
+    get editor() {
+      return cmRef.current?.editor;
+    },
+    focus: () => cmRef.current?.view?.focus(),
+  }));
+
+  useEffect(() => {
+    onExpandedViewOpenChange?.(modalOpen);
+  }, [modalOpen, onExpandedViewOpenChange]);
 
   // Create autocompletion function directly instead of through state
   const createCompletionExtension = () => {
@@ -37,7 +62,7 @@ export default function CodeEditor({
           ...unflatten(request),
           ...unflatten(response),
           ...context,
-          ...standardLibraries,
+          ...(includeStandardLibraries ? standardLibraries : {}),
         }),
         (context) => {
           const word = context.matchBefore(/\$[^$(]*$/);
@@ -83,7 +108,13 @@ export default function CodeEditor({
   };
 
   const openExpandedView = () => {
+    onExpandedViewOpenChange?.(true);
     setModalOpen(true);
+  };
+
+  const closeExpandedView = () => {
+    onExpandedViewOpenChange?.(false);
+    setModalOpen(false);
   };
 
   // i am genuinely so smart
@@ -156,7 +187,7 @@ export default function CodeEditor({
               fontSize: "14px",
             }}
             id="jsCodeEditor"
-            className="font-mono overflow-hidden"
+            className="font-mono overflow-hidden transform-gpu will-change-transform"
             extensions={[
               javascript(),
               createCompletionExtension(),
@@ -189,7 +220,7 @@ export default function CodeEditor({
         {/* Modal for expanded view */}
         <Modal
           open={modalOpen}
-          close={() => setModalOpen(false)}
+          close={closeExpandedView}
           title="Edit JavaScript"
         >
           <div className="relative rounded-b-sm p-4 h-auto text-neutral-600 max-h-[80vh] overflow-y-auto">
@@ -314,7 +345,7 @@ export default function CodeEditor({
       {/* Modal for expanded view */}
       <Modal
         open={modalOpen}
-        close={() => setModalOpen(false)}
+        close={closeExpandedView}
         title="View JavaScript"
       >
         <div className="relative rounded-b-sm p-4 h-auto text-neutral-600 max-h-[80vh] overflow-y-auto">
@@ -375,4 +406,6 @@ export default function CodeEditor({
       </Modal>
     </div>
   );
-}
+});
+
+export default CodeEditor;
